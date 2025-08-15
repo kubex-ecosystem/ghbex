@@ -1,36 +1,27 @@
 // Package state provides types and functions for managing application state.
 package state
 
-type RunsRule struct {
-	MaxAgeDays      int      `yaml:"max_age_days"`
-	KeepSuccessLast int      `yaml:"keep_success_last"`
-	OnlyWorkflows   []string `yaml:"only_workflows"`
-}
-type ArtifactsRule struct {
-	MaxAgeDays int `yaml:"max_age_days"`
-}
-type ReleasesRule struct {
-	DeleteDrafts bool `yaml:"delete_drafts"`
-}
+import "sync/atomic"
 
-type Rules struct {
-	Runs      RunsRule      `yaml:"runs"`
-	Artifacts ArtifactsRule `yaml:"artifacts"`
-	Releases  ReleasesRule  `yaml:"releases"`
-}
+type Stage uint64
 
-type RepoCfg struct {
-	Owner string `yaml:"owner"`
-	Name  string `yaml:"name"`
-	Rules Rules  `yaml:"rules"`
-}
+const (
+	StageRunsCleanup Stage = 1 << iota
+	StageArtifactsCleanup
+	StageReleaseCleanup
+	StageNotify
+	StageReportPersist
+)
 
-type Config struct {
-	Runtime struct {
-		DryRun    bool   `yaml:"dry_run"`
-		ReportDir string `yaml:"report_dir"`
-	} `yaml:"runtime"`
-	GitHub struct {
-		Repos []RepoCfg `yaml:"repos"`
-	} `yaml:"github"`
+type FlagSet struct{ v atomic.Uint64 }
+
+func (f *FlagSet) Enable(s Stage) { f.v.Add(uint64(s)) }
+func (f *FlagSet) Disable(s Stage) {
+	for {
+		old := f.v.Load()
+		if f.v.CompareAndSwap(old, old&^uint64(s)) {
+			return
+		}
+	}
 }
+func (f *FlagSet) Has(s Stage) bool { return f.v.Load()&uint64(s) != 0 }

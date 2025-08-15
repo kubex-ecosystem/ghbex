@@ -2,9 +2,9 @@
 package ghbex
 
 import (
-	"github.com/rafa-mori/ghbex/internal/config"
+	"github.com/rafa-mori/ghbex/internal/defs"
 	ghserver "github.com/rafa-mori/ghbex/internal/server"
 )
 
 type GHServerEngine = ghserver.GHServerEngine
-type GitHub = config.GitHub
+type GitHub = defs.GitHub

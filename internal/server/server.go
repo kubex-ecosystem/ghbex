@@ -14,9 +14,9 @@ import (
 	"github.com/google/go-github/v61/github"
 	githubx "github.com/rafa-mori/ghbex/internal/client"
 	config "github.com/rafa-mori/ghbex/internal/config"
+	"github.com/rafa-mori/ghbex/internal/defs"
 	"github.com/rafa-mori/ghbex/internal/manager"
 	notify "github.com/rafa-mori/ghbex/internal/notifiers"
-	"github.com/rafa-mori/ghbex/internal/state"
 )
 
 type GHServerEngine interface {
@@ -78,7 +78,7 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 	}
 
 	// notifiers
-	var notifierz []config.Notifier
+	var notifierz []defs.Notifier
 	for _, n := range *g.MainConfig.GetNotifiers() {
 		switch n.Type {
 		case "discord":
@@ -111,7 +111,7 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 		dryRun := dry == "1" || strings.EqualFold(dry, "true")
 
 		// find rules (optional override via cfg)
-		var rules state.Rules
+		var rules defs.Rules
 		for _, rc := range g.MainConfig.GetGitHub().Repos {
 			if rc.Owner == owner && rc.Name == repo {
 				rules = rc.Rules
@@ -119,7 +119,7 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 			}
 		}
 
-		var dummy state.Rules
+		var dummy defs.Rules
 		dummy.Runs.MaxAgeDays = 30
 		dummy.Artifacts.MaxAgeDays = 7
 		dummy.Releases.DeleteDrafts = true

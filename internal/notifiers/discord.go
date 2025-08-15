@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/rafa-mori/ghbex/internal/config"
+	"github.com/rafa-mori/ghbex/internal/defs"
 )
 
 type Discord struct {
 	Webhook string
 }
 
-func (d Discord) Send(ctx context.Context, title, text string, files ...config.Attachment) error {
+func (d Discord) Send(ctx context.Context, title, text string, files ...defs.Attachment) error {
 	if d.Webhook == "" {
 		return nil
 	}
@@ -31,7 +31,7 @@ func (d Discord) Send(ctx context.Context, title, text string, files ...config.A
 
 type Stdout struct{}
 
-func (Stdout) Send(ctx context.Context, title, text string, files ...config.Attachment) error {
+func (Stdout) Send(ctx context.Context, title, text string, files ...defs.Attachment) error {
 	fmt.Printf("\n==== %s ====\n%s\n", title, text)
 	return nil
 }

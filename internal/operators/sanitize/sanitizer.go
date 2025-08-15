@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/rafa-mori/ghbex/internal/config"
+	"github.com/rafa-mori/ghbex/internal/defs"
 )
 
-func ToMarkdown(r *config.Report) string {
+func ToMarkdown(r *defs.Report) string {
 	return fmt.Sprintf(`# Sanitize %s/%s
 - when: %s
 - dry_run: %v
