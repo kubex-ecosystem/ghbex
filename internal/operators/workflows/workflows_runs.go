@@ -19,12 +19,16 @@ func CleanRuns(ctx context.Context, cli *github.Client, owner, repo string, r de
 		return slices.Contains(r.OnlyWorkflows, name)
 	}
 
+	// If the rule is to delete runs, we need to paginate through all workflow runs
 	for {
+		// List workflow runs for the repository
 		rs, resp, e := cli.Actions.ListRepositoryWorkflowRuns(ctx, owner, repo, opt)
 		if e != nil {
 			err = e
 			return
 		}
+
+		// If there are more pages, we need to fetch them
 		for _, run := range rs.WorkflowRuns {
 			if !allow(run.GetName()) {
 				continue
@@ -47,14 +51,17 @@ func CleanRuns(ctx context.Context, cli *github.Client, owner, repo string, r de
 			if e := deleteRun(ctx, cli, owner, repo, run.GetID()); e == nil {
 				deleted++
 			}
-			if resp.NextPage == 0 {
-				break
-			}
-			opt.Page = resp.NextPage
-		}
+		} // END OF INNER for
 
-		return
-	}
+		// If there are more pages, we need to fetch them
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+
+	} // END OF EXTERNAL for
+
+	return
 }
 
 func deleteRun(ctx context.Context, cli *github.Client, owner, repo string, id int64) error {

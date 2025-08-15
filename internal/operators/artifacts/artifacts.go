@@ -1,3 +1,4 @@
+// Package operators provides functions to manage GitHub artifacts.
 package operators
 
 import (
