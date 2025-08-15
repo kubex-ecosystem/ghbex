@@ -29,8 +29,8 @@ Existem várias maneiras de contribuir com o GHbex:
 ### 1. **Clone o Repositório**
 
 ```bash
-git clone https://github.com/<seu-usuario>/GHbex.git
-cd GHbex
+git clone https://github.com/rafa-mori/ghbex  .git
+cd ghbex
 ```
 
 ### 2. **Configure o Ambiente**

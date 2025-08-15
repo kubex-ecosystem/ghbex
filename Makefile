@@ -5,11 +5,12 @@
 
 # Define the application name and root directory
 ROOT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-APP_NAME := $(shell jq -r '.name' < $(ROOT_DIR)info/manifest.json)
+TARGET_MANIFEST := $(ROOT_DIR)internal/module/info/manifest.json
+APP_NAME := $(shell jq -r '.name' < $(TARGET_MANIFEST))
 ifeq ($(APP_NAME),)
 APP_NAME := $(shell  echo $(basename $(CURDIR)) | tr '[:upper:]' '[:lower:]')
 endif
-ORGANIZATION := $(shell jq -r '.organization' < $(ROOT_DIR)info/manifest.json)
+ORGANIZATION := $(shell jq -r '.organization' < $(TARGET_MANIFEST))
 ifeq ($(ORGANIZATION),)
 ORGANIZATION := $(shell git config --get user.name | tr '[:upper:]' '[:lower:]')
 endif
@@ -19,7 +20,7 @@ endif
 ifeq ($(ORGANIZATION),)
 ORGANIZATION := $(shell echo $(USER) | tr '[:upper:]' '[:lower:]')
 endif
-REPOSITORY := $(shell jq -r '.repository' < $(ROOT_DIR)info/manifest.json)
+REPOSITORY := $(shell jq -r '.repository' < $(TARGET_MANIFEST))
 ifeq ($(REPOSITORY),)
 REPOSITORY := $(shell git config --get remote.origin.url)
 endif
@@ -29,11 +30,11 @@ endif
 ifeq ($(REPOSITORY),)
 REPOSITORY := $(printf 'https://github.com/%s/%s.git' $(ORGANIZATION) $(APP_NAME))
 endif
-DESCRIPTION := $(shell jq -r '.description' < $(ROOT_DIR)info/manifest.json)
+DESCRIPTION := $(shell jq -r '.description' < $(TARGET_MANIFEST))
 ifeq ($(DESCRIPTION),)
 DESCRIPTION := $(shell git log -1 --pretty=%B | head -n 1)
 endif
-BINARY_NAME := $(shell jq -r '.bin' < $(ROOT_DIR)info/manifest.json)
+BINARY_NAME := $(shell jq -r '.bin' < $(TARGET_MANIFEST))
 ifeq ($(BINARY_NAME),)
 BINARY_NAME := $(ROOT_DIR)bin/$(APP_NAME)
 else
@@ -64,17 +65,17 @@ ARGS := $(filter-out $(strip $(CMD_STR)), $(ARGUMENTS))
 # Default target: help
 .DEFAULT_GOAL := help
 
-# Documentation targets
-docs:
-	@./start-docs.sh
+# # Documentation targets
+# docs:
+# 	@./start-docs.sh
 
-build-docs:
-	@bash $(INSTALL_SCRIPT) build-docs $(ARGS)
-	@$(shell exit 0)
+# build-docs:
+# 	@bash $(INSTALL_SCRIPT) build-docs $(ARGS)
+# 	@$(shell exit 0)
 
-serve-docs:
-	@bash $(INSTALL_SCRIPT) serve-docs $(ARGS)
-	@$(shell exit 0)
+# serve-docs:
+# 	@bash $(INSTALL_SCRIPT) serve-docs $(ARGS)
+# 	@$(shell exit 0)
 
 # Build the binary using the install script.
 build:

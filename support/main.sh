@@ -24,6 +24,7 @@ IFS=$'\n\t'
 : "${VERBOSE:=0}"                    # -v, --verbose
 : "${DEBUG:=0}"                      # -x
 : "${LD_EXTRA:=}"                    # user extra ldflags
+: "${_TARGET_MANIFEST:=/mod/internal/target.json}" # path to target manifest (default: /mod/internal/target.json)
 
 # If BUILDINFO_PATH='main' (or 'mod/internal/buildinfo'),
 # injects -X <path>.Version/.Commit/.BuildDate with git info.
@@ -38,9 +39,22 @@ _INFO="\033[0;36m"
 _NOTICE="\033[0;35m"
 _NC="\033[0m"
 
+# ====== Module Info ======
+MODULE_NAME="$(basename "$(git rev-parse --show-toplevel)")"
+MODULE_VERSION="v0.0.0"
+_PLATFORMS=()
+
+# ====== Project / module / git ======
+PROJECT_ROOT=""
+MOD_NAME=""
+GIT_TAG=""
+GIT_COMMIT=""
+GIT_DATE=""
+
 clear_screen() {
   printf "\033[H\033[2J"
 }
+
 now_ms() {
   if command -v gdate >/dev/null 2>&1; then
     # coreutils (brew install coreutils)
@@ -61,6 +75,7 @@ PY
     echo "$(( $(date +%s) * 1000 ))"
   fi
 }
+
 log() {
   local type="${1:-}"
   local message="${2:-}"
@@ -110,6 +125,7 @@ log() {
   esac
   return 0
 }
+
 die()  { log fatal "$*"; }
 have() { command -v "${1:-}" >/dev/null 2>&1; }
 
@@ -151,6 +167,34 @@ declare -a ARG_GOOS_LIST=()
 declare -a ARG_GOARCH_LIST=()
 TARGET_PATH=""
 
+# shellcheck disable=SC2002
+read_manifest() {
+  local _root_dir=
+  if [[ ! -f "$(git rev-parse --show-toplevel)${_TARGET_MANIFEST:-}" ]]; then
+    echo "❌ ${_TARGET_MANIFEST:-} not found"
+    exit 1
+  fi
+  _root_dir=$(git rev-parse --show-toplevel)
+  _TARGET_MANIFEST="${_root_dir:-}/${_TARGET_MANIFEST:-}"
+
+  # Extract module information
+  MODULE_NAME=$(cat "${_TARGET_MANIFEST:-}" | jq -r '.bin // .name // "unknown"')
+  MODULE_VERSION=$(cat "${_TARGET_MANIFEST:-}" | jq -r '.version // "0.0.0"')
+  _PLATFORMS=( "${_PLATFORMS[@]:-}" )
+
+  # Validate required fields
+  if [[ "$MODULE_NAME" == "unknown" || "$MODULE_NAME" == "null" ]]; then
+    echo "❌ Module name not found in manifest (bin or name field required)"
+    exit 1
+  fi
+
+  if [[ "${#_PLATFORMS[@]}" -eq 0 ]]; then
+    echo "❌ No platforms specified in manifest"
+    exit 1
+  fi
+}
+
+
 # shellcheck disable=SC2015
 parse_args() {
   while (("$#")); do
@@ -166,18 +210,12 @@ parse_args() {
       -h|--help) usage; exit 0 ;;
       *) TARGET_PATH="${1:-}";;
     esac
-    shift || true
+    shift || die "Error parsing arguments."
   done
-  (( DEBUG )) && set -x || true
-  (( VERBOSE )) && set -v || true
-}
 
-# ====== Project / module / git ======
-PROJECT_ROOT=""
-MOD_NAME=""
-GIT_TAG=""
-GIT_COMMIT=""
-GIT_DATE=""
+  (( DEBUG )) && set -x || set +x
+  (( VERBOSE )) && set +v || set -v
+}
 
 detect_project_root() {
   PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
@@ -334,7 +372,7 @@ build_one() {
   local _ext="";
   [[ "${_os}" == "windows" ]] && _ext=".exe"
 
-  local _pkg_name;
+  local _pkg_name="";
   _pkg_name="$(basename "${_dir}")"
 
   local _bin_name="${MOD_NAME}_${_os}_${_arch}${_ext:-}"
