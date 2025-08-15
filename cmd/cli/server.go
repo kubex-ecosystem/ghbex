@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
-	"github.com/rafa-mori/ghbex/internal/githubx"
+	githubx "github.com/rafa-mori/ghbex/internal/ghclient"
 	"github.com/rafa-mori/ghbex/internal/notify"
 	"github.com/rafa-mori/ghbex/internal/sanitize"
 )
