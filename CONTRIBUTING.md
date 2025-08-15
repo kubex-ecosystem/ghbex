@@ -27,23 +27,29 @@ Existem várias maneiras de contribuir com o GHbex:
 ## **Primeiros Passos**
 
 ### 1. **Clone o Repositório**
+
 ```bash
 git clone https://github.com/<seu-usuario>/GHbex.git
 cd GHbex
 ```
 
 ### 2. **Configure o Ambiente**
+
 Certifique-se de ter o Go instalado:
+
 - [Download Go](https://go.dev/dl/)
 
 ### 3. **Instale Dependências**
+
 ```bash
 # Baixe os pacotes necessários
 go mod download
 ```
 
 ### 4. **Execute os Testes**
+
 Antes de fazer mudanças, execute os testes existentes:
+
 ```bash
 go test ./...
 ```
@@ -53,26 +59,33 @@ go test ./...
 ## **Criando um Pull Request**
 
 ### **1. Faça um Fork do Repositório**
+
 Crie um fork do projeto para seu próprio GitHub.
 
 ### **2. Crie uma Branch Nova**
+
 ```bash
 git checkout -b sua-feature
 ```
 
 ### **3. Faça as Alterações**
+
 Certifique-se de seguir as convenções de código e boas práticas do projeto.
 
 ### **4. Adicione Testes (se aplicável)**
+
 Inclua casos de teste para validar a funcionalidade adicionada.
 
 ### **5. Execute os Testes**
+
 Certifique-se de que todas as alterações e testes estão funcionando:
+
 ```bash
 go test ./...
 ```
 
 ### **6. Commit e Push**
+
 ```bash
 git add .
 git commit -m "Descrição breve da alteração"
@@ -80,6 +93,7 @@ git push origin sua-feature
 ```
 
 ### **7. Abra o Pull Request**
+
 Vá até o repositório original no GitHub e abra um _pull request_ explicando suas mudanças.
 
 ---
@@ -87,8 +101,11 @@ Vá até o repositório original no GitHub e abra um _pull request_ explicando s
 ## **Padrões de Código**
 
 ### **Estilo de Código**
+
 Este projeto segue as convenções de código do Go. Algumas recomendações:
+
 - Use `gofmt` para formatar o código:
+
 ```bash
 gofmt -w .
 ```
@@ -97,7 +114,9 @@ gofmt -w .
 - Divida funções longas em partes menores sempre que possível.
 
 ### **Commits**
+
 Os commits devem ser claros e descritivos. Exemplos:
+
 - `fix: corrigir bug na lógica de notificação`
 - `feat: adicionar suporte ao notifier via Slack`
 
@@ -105,16 +124,16 @@ Os commits devem ser claros e descritivos. Exemplos:
 
 ## **Boas Práticas**
 
-1. **Seja Respeitoso e Acolhedor**  
+1. **Seja Respeitoso e Acolhedor**
    Este é um projeto de código aberto para todos. Respeite outros contribuidores e colabore de forma construtiva.
 
-2. **Documente Suas Alterações**  
+2. **Documente Suas Alterações**
    Atualize o `README.md` ou a documentação, se necessário, para incluir suas mudanças.
 
-3. **Adicione Testes Quando Possível**  
+3. **Adicione Testes Quando Possível**
    Assegure-se de que qualquer nova funcionalidade seja acompanhada por testes.
 
-4. **Seja Claro nos Relatórios de Problemas**  
+4. **Seja Claro nos Relatórios de Problemas**
    Ao abrir uma _issue_, seja detalhado e forneça o máximo de contexto.
 
 ---
@@ -122,6 +141,7 @@ Os commits devem ser claros e descritivos. Exemplos:
 ## **Onde Obter Ajuda**
 
 Se você precisar de assistência, sinta-se à vontade para:
+
 - Abrir uma _issue_ com a tag `question`.
 - Entrar em contato comigo através do e-mail ou LinkedIn listados no `README.md`.
 
