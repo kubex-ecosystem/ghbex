@@ -1,3 +1,4 @@
+// Package manager provides functionality for managing GitHub repositories.
 package manager
 
 import (
@@ -11,9 +12,9 @@ import (
 	"github.com/google/go-github/v61/github"
 	"github.com/rafa-mori/ghbex/internal/app"
 	ghclient "github.com/rafa-mori/ghbex/internal/client"
+	"github.com/rafa-mori/ghbex/internal/config"
 	ghcfg "github.com/rafa-mori/ghbex/internal/config"
 	ghntf "github.com/rafa-mori/ghbex/internal/notifiers"
-	ghoper "github.com/rafa-mori/ghbex/internal/operators"
 	"github.com/rafa-mori/ghbex/internal/state"
 )
 
@@ -61,8 +62,8 @@ func (s *Service) SanitizeRepo(ctx context.Context, owner, repo string, rules st
 	title := fmt.Sprintf("Repo sanitize: %s/%s (dry_run=%v)", owner, repo, dryRun)
 	for _, n := range s.notifiers {
 		_ = n.Send(ctx, title, md,
-			ghoper.Attachment{Name: "report.json", Body: jb},
-			ghoper.Attachment{Name: "report.md", Body: []byte(md)},
+			config.Attachment{Name: "report.json", Body: jb},
+			config.Attachment{Name: "report.md", Body: []byte(md)},
 		)
 	}
 	return rpt, nil

@@ -1,4 +1,4 @@
-package githubx
+package client
 
 import (
 	"bytes"

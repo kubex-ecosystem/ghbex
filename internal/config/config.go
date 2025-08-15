@@ -1,5 +1,5 @@
-// Package ghconfig provides configuration structures and interfaces for the application.
-package ghconfig
+// Package config provides configuration structures and interfaces for the application.
+package config
 
 // var configFilePath, bindHost, port, name string
 // var debug, dryRun, background bool

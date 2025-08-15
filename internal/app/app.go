@@ -1,4 +1,4 @@
-// Package sanitize provides utilities for cleaning up GitHub resources such as workflow runs, artifacts, and releases.
+// Package app provides utilities for cleaning up GitHub resources such as workflow runs, artifacts, and releases.
 package app
 
 import (

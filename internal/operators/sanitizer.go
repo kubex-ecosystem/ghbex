@@ -1,47 +1,14 @@
-// Package core provides core functionalities for the application.-
-package core
+// Package operators provides functionalities for operating on GitHub resources.
+package operators
 
 import (
-	"context"
 	"fmt"
 	"time"
+
+	"github.com/rafa-mori/ghbex/internal/config"
 )
 
-type Notifier interface {
-	Send(ctx context.Context, title, text string, files ...Attachment) error
-}
-
-type Attachment struct {
-	Name string
-	Body []byte
-}
-
-type Report struct {
-	Owner  string    `json:"owner"`
-	Repo   string    `json:"repo"`
-	When   time.Time `json:"when"`
-	DryRun bool      `json:"dry_run"`
-
-	Runs struct {
-		Deleted int     `json:"deleted"`
-		Kept    int     `json:"kept"`
-		IDs     []int64 `json:"ids"`
-	} `json:"runs"`
-
-	Artifacts struct {
-		Deleted int     `json:"deleted"`
-		IDs     []int64 `json:"ids"`
-	} `json:"artifacts"`
-
-	Releases struct {
-		DeletedDrafts int      `json:"deleted_drafts"`
-		Tags          []string `json:"tags"`
-	} `json:"releases"`
-
-	Notes []string `json:"notes"`
-}
-
-func toMarkdown(r *Report) string {
+func ToMarkdown(r *config.Report) string {
 	return fmt.Sprintf(`# Sanitize %s/%s
 - when: %s
 - dry_run: %v

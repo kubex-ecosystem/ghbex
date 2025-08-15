@@ -1,5 +1,5 @@
-// Package notify provides functionality for sending notifications to various channels.
-package notify
+// Package notifiers provides functionality for sending notifications to various channels.
+package notifiers
 
 import (
 	"bytes"
@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"net/http"
 
-	sanitize "github.com/rafa-mori/ghbex/internal/operators"
+	"github.com/rafa-mori/ghbex/internal/config"
 )
 
 type Discord struct {
 	Webhook string
 }
 
-func (d Discord) Send(ctx context.Context, title, text string, files ...sanitize.Attachment) error {
+func (d Discord) Send(ctx context.Context, title, text string, files ...config.Attachment) error {
 	if d.Webhook == "" {
 		return nil
 	}
@@ -31,7 +31,7 @@ func (d Discord) Send(ctx context.Context, title, text string, files ...sanitize
 
 type Stdout struct{}
 
-func (Stdout) Send(ctx context.Context, title, text string, files ...sanitize.Attachment) error {
+func (Stdout) Send(ctx context.Context, title, text string, files ...config.Attachment) error {
 	fmt.Printf("\n==== %s ====\n%s\n", title, text)
 	return nil
 }

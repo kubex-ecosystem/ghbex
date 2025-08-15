@@ -1,4 +1,5 @@
-package ghserver
+// Package server provides an HTTP server for the application.
+package server
 
 import (
 	"context"
@@ -15,7 +16,6 @@ import (
 	config "github.com/rafa-mori/ghbex/internal/config"
 	"github.com/rafa-mori/ghbex/internal/manager"
 	notify "github.com/rafa-mori/ghbex/internal/notifiers"
-	sanitize "github.com/rafa-mori/ghbex/internal/operators"
 	"github.com/rafa-mori/ghbex/internal/state"
 )
 
@@ -78,7 +78,7 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 	}
 
 	// notifiers
-	var notifierz []sanitize.Notifier
+	var notifierz []config.Notifier
 	for _, n := range *g.MainConfig.GetNotifiers() {
 		switch n.Type {
 		case "discord":

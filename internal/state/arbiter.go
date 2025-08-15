@@ -1,3 +1,4 @@
+// Package state provides types and functions for managing application state.
 package state
 
 type RunsRule struct {
