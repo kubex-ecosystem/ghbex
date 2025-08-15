@@ -1,0 +1,33 @@
+runtime:
+  dry_run: true
+  report_dir: ./_reports
+
+server:
+  addr: ":8088"
+
+github:
+  auth:
+    kind: "pat" # "pat" | "app"
+    token: "${GITHUB_TOKEN}" # se kind=pat
+    app_id: 0 # se kind=app
+    installation_id: 0 # se kind=app
+    private_key_path: "./secrets/gh_app.pem"
+    base_url: "" # GHES: https://ghe.example/api/v3/
+    upload_url: "" # GHES: https://ghe.example/api/uploads/
+  repos:
+    - owner: "rafa-mori"
+      name: "grompt"
+      rules:
+        runs:
+          max_age_days: 30
+          keep_success_last: 10
+          only_workflows: [] # ["build.yml","release.yml"]
+        artifacts:
+          max_age_days: 7
+        releases:
+          delete_drafts: true
+
+notifiers:
+  - type: "stdout"
+  - type: "discord"
+    webhook: "${DISCORD_WEBHOOK_URL}"
