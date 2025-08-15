@@ -52,3 +52,4 @@ tests/**/*
 *_linux_amd64*
 */docs/mcp_implementation
 *.sarif
+/dist/

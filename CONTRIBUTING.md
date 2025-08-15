@@ -1,54 +1,58 @@
-# **Contribuindo para GHbex**
+# **Contributing to GHbex**
 
-Obrigado por se interessar em contribuir para o **GHbex**! Estamos animados por ter você como parte da nossa comunidade. Este guia ajudará você a começar e contribuir de forma eficiente com o projeto.
-
----
-
-## **Como Contribuir**
-
-Existem várias maneiras de contribuir com o GHbex:
-
-1. **Relatar Problemas (Issues)**
-    - Encontre bugs ou problemas no código? Abra uma _issue_ detalhando o problema.
-    - Inclua o máximo de informações possíveis: passos para reproduzir o problema, logs, versão do Go utilizada, etc.
-
-2. **Sugerir Melhorias**
-    - Tem uma ideia para melhorar o projeto? Compartilhe sua sugestão abrindo uma _issue_ com a tag `enhancement`.
-
-3. **Enviar Pull Requests**
-    - Quer corrigir um bug ou implementar algo novo? Envie um _pull request_ com suas alterações.
-
-4. **Testar e Revisar Código**
-    - Ajude a revisar _pull requests_ de outros contribuidores.
-    - Execute os testes existentes e valide se as alterações propostas mantêm o sistema funcional.
+Thank you for your interest in contributing to **GHbex**! We are excited to have you as part of our community. This guide will help you get started and contribute efficiently to the project.
 
 ---
 
-## **Primeiros Passos**
+## **How to Contribute**
 
-### 1. **Clone o Repositório**
+There are several ways to contribute to GHbex:
+
+1. **Report Issues**
+
+   - Found bugs or issues in the code? Open an _issue_ detailing the problem.
+   - Include as much information as possible: steps to reproduce, logs, Go version used, etc.
+
+2. **Suggest Improvements**
+
+   - Have an idea to improve the project? Share your suggestion by opening an _issue_ with the `enhancement` tag.
+
+3. **Submit Pull Requests**
+
+   - Want to fix a bug or implement something new? Submit a _pull request_ with your changes.
+
+4. **Test and Review Code**
+
+   - Help review other contributors' _pull requests_.
+   - Run existing tests and validate that proposed changes keep the system functional.
+
+---
+
+## **Getting Started**
+
+### 1. **Clone the Repository**
 
 ```bash
-git clone https://github.com/rafa-mori/ghbex  .git
+git clone https://github.com/rafa-mori/ghbex.git
 cd ghbex
 ```
 
-### 2. **Configure o Ambiente**
+### 2. **Set Up Your Environment**
 
-Certifique-se de ter o Go instalado:
+Make sure you have Go installed:
 
 - [Download Go](https://go.dev/dl/)
 
-### 3. **Instale Dependências**
+### 3. **Install Dependencies**
 
 ```bash
-# Baixe os pacotes necessários
+# Download required packages
 go mod download
 ```
 
-### 4. **Execute os Testes**
+### 4. **Run the Tests**
 
-Antes de fazer mudanças, execute os testes existentes:
+Before making changes, run the existing tests:
 
 ```bash
 go test ./...
@@ -56,97 +60,97 @@ go test ./...
 
 ---
 
-## **Criando um Pull Request**
+## **Creating a Pull Request**
 
-### **1. Faça um Fork do Repositório**
+### **1. Fork the Repository**
 
-Crie um fork do projeto para seu próprio GitHub.
+Fork the project to your own GitHub account.
 
-### **2. Crie uma Branch Nova**
+### **2. Create a New Branch**
 
 ```bash
-git checkout -b sua-feature
+git checkout -b your-feature
 ```
 
-### **3. Faça as Alterações**
+### **3. Make Your Changes**
 
-Certifique-se de seguir as convenções de código e boas práticas do projeto.
+Be sure to follow the project's code conventions and best practices.
 
-### **4. Adicione Testes (se aplicável)**
+### **4. Add Tests (if applicable)**
 
-Inclua casos de teste para validar a funcionalidade adicionada.
+Include test cases to validate the added functionality.
 
-### **5. Execute os Testes**
+### **5. Run the Tests**
 
-Certifique-se de que todas as alterações e testes estão funcionando:
+Make sure all changes and tests are working:
 
 ```bash
 go test ./...
 ```
 
-### **6. Commit e Push**
+### **6. Commit and Push**
 
 ```bash
 git add .
-git commit -m "Descrição breve da alteração"
-git push origin sua-feature
+git commit -m "Brief description of the change"
+git push origin your-feature
 ```
 
-### **7. Abra o Pull Request**
+### **7. Open the Pull Request**
 
-Vá até o repositório original no GitHub e abra um _pull request_ explicando suas mudanças.
+Go to the original repository on GitHub and open a _pull request_ explaining your changes.
 
 ---
 
-## **Padrões de Código**
+## **Code Standards**
 
-### **Estilo de Código**
+### **Code Style**
 
-Este projeto segue as convenções de código do Go. Algumas recomendações:
+This project follows Go coding conventions. Some recommendations:
 
-- Use `gofmt` para formatar o código:
+- Use `gofmt` to format the code:
 
 ```bash
 gofmt -w .
 ```
 
-- Nomeie variáveis e funções de forma clara e descritiva.
-- Divida funções longas em partes menores sempre que possível.
+- Name variables and functions clearly and descriptively.
+- Split long functions into smaller parts whenever possible.
 
 ### **Commits**
 
-Os commits devem ser claros e descritivos. Exemplos:
+Commits should be clear and descriptive. Examples:
 
-- `fix: corrigir bug na lógica de notificação`
-- `feat: adicionar suporte ao notifier via Slack`
-
----
-
-## **Boas Práticas**
-
-1. **Seja Respeitoso e Acolhedor**
-   Este é um projeto de código aberto para todos. Respeite outros contribuidores e colabore de forma construtiva.
-
-2. **Documente Suas Alterações**
-   Atualize o `README.md` ou a documentação, se necessário, para incluir suas mudanças.
-
-3. **Adicione Testes Quando Possível**
-   Assegure-se de que qualquer nova funcionalidade seja acompanhada por testes.
-
-4. **Seja Claro nos Relatórios de Problemas**
-   Ao abrir uma _issue_, seja detalhado e forneça o máximo de contexto.
+- `fix: fix bug in notification logic`
+- `feat: add support for Slack notifier`
 
 ---
 
-## **Onde Obter Ajuda**
+## **Best Practices**
 
-Se você precisar de assistência, sinta-se à vontade para:
+1. **Be Respectful and Welcoming**
+   This is an open-source project for everyone. Respect other contributors and collaborate constructively.
 
-- Abrir uma _issue_ com a tag `question`.
-- Entrar em contato comigo através do e-mail ou LinkedIn listados no `README.md`.
+2. **Document Your Changes**
+   Update the `README.md` or documentation, if necessary, to include your changes.
+
+3. **Add Tests When Possible**
+   Ensure that any new functionality is accompanied by tests.
+
+4. **Be Clear in Issue Reports**
+   When opening an _issue_, be detailed and provide as much context as possible.
 
 ---
 
-## **Nosso Compromisso**
+## **Where to Get Help**
 
-Nos comprometemos a revisar pull requests e issues o mais rápido possível. Valoramos sua contribuição e agradecemos pelo tempo dedicado ao projeto!
+If you need assistance, feel free to:
+
+- Open an _issue_ with the `question` tag.
+- Contact me via the email or LinkedIn listed in the `README.md`.
+
+---
+
+## **Our Commitment**
+
+We are committed to reviewing pull requests and issues as quickly as possible. We value your contribution and appreciate the time you dedicate to the project!
