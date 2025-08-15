@@ -1,4 +1,5 @@
-package sanitize
+// Package sanitize provides utilities for cleaning up GitHub resources such as workflow runs, artifacts, and releases.
+package app
 
 import (
 	"context"
@@ -6,9 +7,10 @@ import (
 	"time"
 
 	"github.com/google/go-github/v61/github"
+	"github.com/rafa-mori/ghbex/internal/state"
 )
 
-func cleanRuns(ctx context.Context, cli *github.Client, owner, repo string, r RunsRule, dry bool) (deleted, kept int, ids []int64, err error) {
+func CleanRuns(ctx context.Context, cli *github.Client, owner, repo string, r state.RunsRule, dry bool) (deleted, kept int, ids []int64, err error) {
 	opt := &github.ListWorkflowRunsOptions{ListOptions: github.ListOptions{PerPage: 100}}
 	cut := cutoff(r.MaxAgeDays)
 	allow := func(name string) bool {
@@ -61,7 +63,7 @@ func deleteRun(ctx context.Context, cli *github.Client, owner, repo string, id i
 	return err
 }
 
-func cleanArtifacts(ctx context.Context, cli *github.Client, owner, repo string, r ArtifactsRule, dry bool) (deleted int, ids []int64, err error) {
+func CleanArtifacts(ctx context.Context, cli *github.Client, owner, repo string, r state.ArtifactsRule, dry bool) (deleted int, ids []int64, err error) {
 	cut := cutoff(r.MaxAgeDays)
 	opt := &github.ListOptions{PerPage: 100}
 	for {
@@ -94,7 +96,7 @@ func deleteArtifact(ctx context.Context, cli *github.Client, owner, repo string,
 	return err
 }
 
-func cleanReleases(ctx context.Context, cli *github.Client, owner, repo string, r ReleasesRule, dry bool) (deletedDrafts int, tags []string, err error) {
+func CleanReleases(ctx context.Context, cli *github.Client, owner, repo string, r state.ReleasesRule, dry bool) (deletedDrafts int, tags []string, err error) {
 	opt := &github.ListOptions{PerPage: 100}
 	for {
 		rel, resp, e := cli.Repositories.ListReleases(ctx, owner, repo, opt)

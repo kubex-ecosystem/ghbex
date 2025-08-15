@@ -1,29 +1,31 @@
 {
-  "name": "Kubex - Grompt",
-  "application": "grompt",
-  "version": "1.2.0",
+  "name": "Kubex - GHbex",
+  "application": "ghbex",
+  "version": "0.0.1",
   "private": false,
   "published": true,
   "aliases": [
-    "grompt",
-    "krompt"
+    "ghbex",
+    "kbx_ghbex"
   ],
-  "repository": "https://github.com/rafa-mori/grompt",
-  "homepage": "https://grompt.rafa-mori.dev/",
-  "description": "Kubex - Grompt is a profissional AI prompt context object kind like: agents, prompts, API calls, and more.",
+  "repository": "https://github.com/rafa-mori/ghbex",
+  "homepage": "https://ghbex.rafa-mori.dev/",
+  "description": "Kubex - GHbex is a command-line tool for managing GitHub repositories and file markers.",
   "main": "cmd/main.go",
-  "bin": "grompt",
+  "bin": "ghbex",
   "author": "Rafael Mori <faelmori@gmail.com>",
   "organization": "rafa-mori",
   "license": "MIT",
   "keywords": [
-    "grompt",
+    "ghbex",
     "kubex",
     "file-markers",
     "control",
     "command-line",
     "tool",
-    "management"
+    "management",
+    "github",
+    "prompt"
   ],
   "platforms": [
     "linux/amd64"
@@ -35,7 +37,6 @@
     "git",
     "zip",
     "unzip",
-    "jq",
-    "upx"
+    "jq"
   ]
 }

@@ -5,8 +5,9 @@
 
 # Define the application name and root directory
 ROOT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-TARGET_MANIFEST := $(ROOT_DIR)internal/module/info/manifest.json
+TARGET_MANIFEST = $(ROOT_DIR)internal/module/info/manifest.json
 APP_NAME := $(shell jq -r '.name' < $(TARGET_MANIFEST))
+
 ifeq ($(APP_NAME),)
 APP_NAME := $(shell  echo $(basename $(CURDIR)) | tr '[:upper:]' '[:lower:]')
 endif
@@ -58,24 +59,12 @@ log_break = @printf "%b%s%b\n" "$(COLOR_BLUE)" "[INFO]" "$(COLOR_RESET)"
 log_error = @printf "%b%s%b %s\n" "$(COLOR_RED)" "[ERROR]" "$(COLOR_RESET)" "$(1)"
 
 ARGUMENTS := $(MAKECMDGOALS)
-INSTALL_SCRIPT=$(ROOT_DIR)support/main.sh
+INSTALL_SCRIPT = $(ROOT_DIR)support/main.sh
 CMD_STR := $(strip $(firstword $(ARGUMENTS)))
 ARGS := $(filter-out $(strip $(CMD_STR)), $(ARGUMENTS))
 
 # Default target: help
 .DEFAULT_GOAL := help
-
-# # Documentation targets
-# docs:
-# 	@./start-docs.sh
-
-# build-docs:
-# 	@bash $(INSTALL_SCRIPT) build-docs $(ARGS)
-# 	@$(shell exit 0)
-
-# serve-docs:
-# 	@bash $(INSTALL_SCRIPT) serve-docs $(ARGS)
-# 	@$(shell exit 0)
 
 # Build the binary using the install script.
 build:

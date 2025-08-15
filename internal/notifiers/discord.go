@@ -8,18 +8,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/rafa-mori/ghbex/internal/sanitize"
+	sanitize "github.com/rafa-mori/ghbex/internal/operators"
 )
 
 type Discord struct {
 	Webhook string
-}
-
-type Stdout struct{}
-
-func (Stdout) Send(ctx context.Context, title, text string, files ...sanitize.Attachment) error {
-	fmt.Printf("\n==== %s ====\n%s\n", title, text)
-	return nil
 }
 
 func (d Discord) Send(ctx context.Context, title, text string, files ...sanitize.Attachment) error {
@@ -34,4 +27,11 @@ func (d Discord) Send(ctx context.Context, title, text string, files ...sanitize
 	req.Header.Set("Content-Type", "application/json")
 	_, err := http.DefaultClient.Do(req)
 	return err
+}
+
+type Stdout struct{}
+
+func (Stdout) Send(ctx context.Context, title, text string, files ...sanitize.Attachment) error {
+	fmt.Printf("\n==== %s ====\n%s\n", title, text)
+	return nil
 }

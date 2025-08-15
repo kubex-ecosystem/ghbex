@@ -1,5 +1,4 @@
-// Package sanitize defines the configuration types used for sanitizing GitHub repositories.
-package sanitize
+package state
 
 type RunsRule struct {
 	MaxAgeDays      int      `yaml:"max_age_days"`
