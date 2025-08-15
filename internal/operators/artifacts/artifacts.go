@@ -1,5 +1,5 @@
-// Package operators provides functions to manage GitHub artifacts.
-package operators
+// Package artifacts provides functions to manage GitHub artifacts.
+package artifacts
 
 import (
 	"context"

@@ -1,4 +1,5 @@
-package operators
+// Package releases provides functions to manage GitHub releases.
+package releases
 
 import (
 	"context"

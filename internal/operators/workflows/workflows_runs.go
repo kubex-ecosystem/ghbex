@@ -1,4 +1,5 @@
-package operators
+// Package workflows provides functions to manage GitHub workflows.
+package workflows
 
 import (
 	"context"

@@ -1,5 +1,5 @@
-// Package operators provides functionalities for operating on GitHub resources.
-package operators
+// Package sanitize provides functionalities for operating on GitHub resources.
+package sanitize
 
 import (
 	"fmt"
