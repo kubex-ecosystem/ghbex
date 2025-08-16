@@ -9,6 +9,9 @@ import (
 	"github.com/rafa-mori/ghbex/internal/utils"
 )
 
+type IArtifacts interface {
+}
+
 func CleanArtifacts(ctx context.Context, cli *github.Client, owner, repo string, r defs.ArtifactsRule, dry bool) (deleted int, ids []int64, err error) {
 	cut := utils.Cutoff(r.MaxAgeDays)
 	opt := &github.ListOptions{PerPage: 100}

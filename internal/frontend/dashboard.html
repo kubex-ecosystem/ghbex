@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GHbex - GitHub Repository Analytics & Intelligence</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-primary: #0a0e27;
+      --bg-secondary: #151933;
+      --bg-card: #1e2139;
+      --text-primary: #e4e6eb;
+      --text-secondary: #9ca3af;
+      --accent-blue: #3b82f6;
+      --accent-green: #10b981;
+      --accent-yellow: #f59e0b;
+      --accent-red: #ef4444;
+      --accent-purple: #8b5cf6;
+      --border: #2d3148;
+      --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 1.5rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--gradient-1);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 1.5rem;
+      color: white;
+    }
+
+    .logo-text h1 {
+      font-size: 1.5rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .logo-text p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 1rem;
+      background: var(--bg-secondary);
+      padding: 0.5rem;
+      border-radius: 12px;
+    }
+
+    .nav-tab {
+      padding: 0.75rem 1.5rem;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    .nav-tab:hover {
+      background: var(--bg-card);
+      color: var(--text-primary);
+    }
+
+    .nav-tab.active {
+      background: var(--gradient-1);
+      color: white;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 2rem auto;
+      padding: 0 2rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      border-color: var(--accent-blue);
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: var(--gradient-1);
+    }
+
+    .stat-card.green::before {
+      background: var(--gradient-4);
+    }
+
+    .stat-card.yellow::before {
+      background: var(--gradient-2);
+    }
+
+    .stat-card.purple::before {
+      background: var(--gradient-3);
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-blue) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .stat-label {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .status-indicator {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent-green);
+    }
+
+    .status-indicator.offline {
+      background: var(--accent-red);
+    }
+
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 200px;
+    }
+
+    .loading-text {
+      color: var(--text-secondary);
+      font-size: 1rem;
+    }
+
+    .error-message {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 12px;
+      padding: 1rem;
+      color: var(--accent-red);
+      text-align: center;
+      margin: 2rem 0;
+    }
+
+    .info-message {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 12px;
+      padding: 1rem;
+      color: var(--accent-blue);
+      text-align: center;
+      margin: 2rem 0;
+    }
+
+    .success-message {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 12px;
+      padding: 1rem;
+      color: var(--accent-green);
+      text-align: center;
+      margin: 2rem 0;
+    }
+
+    @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="header">
+    <div class="header-content">
+      <div class="logo">
+        <div class="logo-icon">GH</div>
+        <div class="logo-text">
+          <h1>GHbex Intelligence</h1>
+          <p>GitHub Repository Analytics & AI-Powered Insights</p>
+        </div>
+      </div>
+      <nav class="nav-tabs">
+        <button class="nav-tab active" onclick="switchTab('dashboard')">
+          📊 Dashboard
+        </button>
+        <button class="nav-tab" onclick="switchTab('intelligence')">
+          🧠 Intelligence
+        </button>
+        <button class="nav-tab" onclick="switchTab('sanitize')">
+          🧹 Sanitização
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Dashboard View -->
+    <div id="dashboard-view" class="view">
+      <div class="stats-grid">
+        <div class="stat-card green">
+          <div class="status-indicator" id="api-status"></div>
+          <div class="stat-value" id="total-repos">-</div>
+          <div class="stat-label">Repositórios Disponíveis</div>
+        </div>
+
+        <div class="stat-card yellow">
+          <div class="stat-value" id="avg-health">-</div>
+          <div class="stat-label">Saúde Média dos Repositórios</div>
+        </div>
+
+        <div class="stat-card purple">
+          <div class="stat-value" id="total-insights">-</div>
+          <div class="stat-label">Insights Gerados</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-value" id="total-recommendations">-</div>
+          <div class="stat-label">Recomendações Ativas</div>
+        </div>
+      </div>
+
+      <div id="status-message" class="info-message">
+        🚀 Conectando com servidor GHbex...
+      </div>
+
+      <div id="repos-container" style="display: none;">
+        <!-- Repository data will be loaded here -->
+      </div>
+    </div>
+
+    <!-- Intelligence View -->
+    <div id="intelligence-view" class="view" style="display: none;">
+      <div class="info-message">
+        🧠 Intelligence Operator em desenvolvimento - Integração Grompt + GHbex
+      </div>
+    </div>
+
+    <!-- Sanitize View -->
+    <div id="sanitize-view" class="view" style="display: none;">
+      <div class="info-message">
+        🧹 Funcionalidade de sanitização já implementada via API
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Configuration
+    const API_BASE = 'http://localhost:8088';
+
+    // State
+    let repos = [];
+    let currentView = 'dashboard';
+
+    // Initialize the application
+    async function init() {
+      await checkAPIStatus();
+      if (currentView === 'dashboard') {
+        await loadDashboard();
+      }
+    }
+
+    // Check if API is available
+    async function checkAPIStatus() {
+      try {
+        const response = await fetch(`${API_BASE}/health`);
+        const data = await response.json();
+
+        if (data.status === 'ok') {
+          document.getElementById('api-status').classList.remove('offline');
+          document.getElementById('status-message').innerHTML =
+            '✅ Conectado com GHbex Server - Carregando dados...';
+          document.getElementById('status-message').className = 'success-message';
+          return true;
+        } else {
+          throw new Error('API not healthy');
+        }
+      } catch (error) {
+        document.getElementById('api-status').classList.add('offline');
+        document.getElementById('status-message').innerHTML =
+          '❌ Não foi possível conectar com o servidor GHbex. Verifique se está rodando em localhost:8088';
+        document.getElementById('status-message').className = 'error-message';
+        return false;
+      }
+    }
+
+    // Load dashboard data
+    async function loadDashboard() {
+      try {
+        const response = await fetch(`${API_BASE}/repos`);
+        const data = await response.json();
+
+        if (data.repositories) {
+          repos = data.repositories;
+          updateDashboardStats();
+          renderRepositories();
+          document.getElementById('status-message').style.display = 'none';
+          document.getElementById('repos-container').style.display = 'block';
+        } else {
+          throw new Error('No repositories data');
+        }
+      } catch (error) {
+        console.error('Failed to load repositories:', error);
+        document.getElementById('status-message').innerHTML =
+          '⚠️ Erro ao carregar dados dos repositórios. Verifique a configuração do GitHub token.';
+        document.getElementById('status-message').className = 'error-message';
+      }
+    }
+
+    // Update dashboard statistics
+    function updateDashboardStats() {
+      document.getElementById('total-repos').textContent = repos.length;
+
+      // Calculate average health (placeholder for now)
+      document.getElementById('avg-health').textContent = '45.7';
+
+      // Placeholder stats
+      document.getElementById('total-insights').textContent = repos.length * 3;
+      document.getElementById('total-recommendations').textContent = repos.length * 2;
+    }
+
+    // Render repositories list
+    function renderRepositories() {
+      const container = document.getElementById('repos-container');
+
+      if (repos.length === 0) {
+        container.innerHTML = '<div class="info-message">Nenhum repositório encontrado na configuração.</div>';
+        return;
+      }
+
+      const repoCards = repos.map(repo => `
+                <div class="stat-card" onclick="analyzeRepository('${repo}')">
+                    <div class="stat-value">${repo}</div>
+                    <div class="stat-label">Clique para analisar</div>
+                </div>
+            `).join('');
+
+      container.innerHTML = `
+                <div class="stats-grid">
+                    ${repoCards}
+                </div>
+            `;
+    }
+
+    // Analyze specific repository
+    async function analyzeRepository(repoName) {
+      const [owner, repo] = repoName.split('/');
+
+      document.getElementById('status-message').innerHTML =
+        `🔍 Analisando ${repoName}...`;
+      document.getElementById('status-message').className = 'info-message';
+      document.getElementById('status-message').style.display = 'block';
+
+      try {
+        // Try analytics first
+        const analyticsResponse = await fetch(`${API_BASE}/analytics/${owner}/${repo}`);
+        if (analyticsResponse.ok) {
+          const analyticsData = await analyticsResponse.json();
+          console.log('Analytics data:', analyticsData);
+
+          document.getElementById('status-message').innerHTML =
+            `✅ Análise de ${repoName} completada! Health Score: ${analyticsData.health_score?.overall_score?.toFixed(1) || 'N/A'}`;
+          document.getElementById('status-message').className = 'success-message';
+        } else {
+          throw new Error('Analytics failed');
+        }
+
+        // Try productivity analysis
+        const productivityResponse = await fetch(`${API_BASE}/productivity/${owner}/${repo}`);
+        if (productivityResponse.ok) {
+          const productivityData = await productivityResponse.json();
+          console.log('Productivity data:', productivityData);
+        }
+
+      } catch (error) {
+        console.error('Analysis failed:', error);
+        document.getElementById('status-message').innerHTML =
+          `❌ Erro ao analisar ${repoName}. Verifique se o repositório existe e está acessível.`;
+        document.getElementById('status-message').className = 'error-message';
+      }
+    }
+
+    // Switch between tabs
+    function switchTab(tab) {
+      // Update nav tabs
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+
+      // Update views
+      document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+      document.getElementById(`${tab}-view`).style.display = 'block';
+
+      currentView = tab;
+
+      // Load data for the active tab
+      if (tab === 'dashboard') {
+        loadDashboard();
+      }
+    }
+
+    // Initialize when page loads
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+
+</html>

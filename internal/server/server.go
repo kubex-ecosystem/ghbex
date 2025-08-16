@@ -16,8 +16,9 @@ import (
 	githubx "github.com/rafa-mori/ghbex/internal/client"
 	config "github.com/rafa-mori/ghbex/internal/config"
 	"github.com/rafa-mori/ghbex/internal/defs"
+	"github.com/rafa-mori/ghbex/internal/frontend"
 	"github.com/rafa-mori/ghbex/internal/manager"
-	notify "github.com/rafa-mori/ghbex/internal/notifiers"
+	"github.com/rafa-mori/ghbex/internal/notifiers"
 	"github.com/rafa-mori/ghbex/internal/operators/analytics"
 	"github.com/rafa-mori/ghbex/internal/operators/productivity"
 )
@@ -84,13 +85,14 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 	}
 
 	// notifiers
-	var notifierz []defs.Notifier
+	var notifierz []defs.INotifiers
 	for _, n := range *g.MainConfig.GetNotifiers() {
 		switch n.Type {
 		case "discord":
-			notifierz = append(notifierz, notify.Discord{Webhook: os.ExpandEnv(n.Webhook)})
+			webhook := os.ExpandEnv(n.Webhook)
+			notifierz = append(notifierz, &notifiers.Discord{Webhook: webhook})
 		case "stdout":
-			notifierz = append(notifierz, &notify.Stdout{})
+			notifierz = append(notifierz, &notifiers.Stdout{})
 		}
 	}
 
@@ -114,6 +116,23 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 			"config_repos": len(g.MainConfig.GetGitHub().Repos),
 		}
 		_ = json.NewEncoder(w).Encode(response)
+	})
+
+	// Dashboard web interface
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "only GET", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Serve dashboard only for root path
+		if r.URL.Path == "/" {
+			frontend.ServeDashboard(w, r)
+			return
+		}
+
+		// For other paths, return 404
+		http.NotFound(w, r)
 	})
 
 	// List configured repositories endpoint

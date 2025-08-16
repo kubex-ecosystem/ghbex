@@ -1026,3 +1026,19 @@ func generateRecommendations(report *InsightsReport) []string {
 
 	return recommendations
 }
+
+func GetRepositoryInsights(ctx context.Context, owner, repo string, days int) (*InsightsReport, error) {
+	var repositoryReport *InsightsReport
+
+	// Implementation for gathering repository insights
+	repositoryReport, err := AnalyzeRepository(ctx, nil, owner, repo, days)
+	if err != nil {
+		return nil, fmt.Errorf("failed to analyze repository: %w", err)
+	}
+
+	return &InsightsReport{
+		AnalysisDays: repositoryReport.AnalysisDays,
+		CodeIntel:    repositoryReport.CodeIntel,
+		Productivity: repositoryReport.Productivity,
+	}, nil
+}

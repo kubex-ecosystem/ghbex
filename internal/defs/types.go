@@ -6,6 +6,11 @@ import (
 	"time"
 )
 
+type INotifiers interface {
+	// Send sends a notification with the given title and text.
+	Send(ctx context.Context, title, text string, files ...Attachment) error
+}
+
 type Notifiers []struct {
 	Type    string `yaml:"type"`
 	Webhook string `yaml:"webhook"`
@@ -84,10 +89,6 @@ type Report struct {
 	} `json:"monitoring"`
 
 	Notes []string `json:"notes"`
-}
-
-type Notifier interface {
-	Send(ctx context.Context, title, text string, files ...Attachment) error
 }
 
 type Attachment struct {
