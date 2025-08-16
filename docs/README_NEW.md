@@ -112,7 +112,7 @@ curl -X POST "http://localhost:8088/admin/repos/owner/repo/sanitize?dry_run=1" |
 
 ## 📁 **Project Structure**
 
-```
+```plaintext
 ├── cmd/                     # CLI and server entry points
 ├── internal/
 │   ├── operators/           # Core business logic

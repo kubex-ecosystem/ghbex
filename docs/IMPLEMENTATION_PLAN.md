@@ -29,7 +29,7 @@ Transform GHBEX into a complete GitHub repository sanitization and monitoring en
 
 ### PHASE 1: Complete Core Sanitization (Current Sprint)
 
-**Target: Get basic sanitization 100% functional**
+Target: Get basic sanitization 100% functional
 
 1. **Complete Artifacts Cleanup** (1-2 hours)
    - Implement pagination in artifacts operator
@@ -48,7 +48,7 @@ Transform GHBEX into a complete GitHub repository sanitization and monitoring en
 
 ### PHASE 2: Security & SSH Management (Next Sprint)
 
-**Target: Add SSH key rotation and security features**
+Target: Add SSH key rotation and security features
 
 1. **SSH Key Rotation System** (3-4 hours)
    - Create `internal/operators/security/` package
@@ -63,7 +63,7 @@ Transform GHBEX into a complete GitHub repository sanitization and monitoring en
 
 ### PHASE 3: Monitoring & Analytics (Following Sprint)
 
-**Target: Add proactive monitoring capabilities**
+Target: Add proactive monitoring capabilities
 
 1. **Repository Activity Monitoring** (3 hours)
    - PR and Issue tracking
@@ -78,7 +78,7 @@ Transform GHBEX into a complete GitHub repository sanitization and monitoring en
 
 ### PHASE 4: MCP Integration (Final Sprint)
 
-**Target: Bridge GHBEX with GoBE MCP system**
+Target: Bridge GHBEX with GoBE MCP system
 
 1. **MCP Bridge Creation** (4 hours)
    - Create MCP controller in GoBE
@@ -95,7 +95,7 @@ Transform GHBEX into a complete GitHub repository sanitization and monitoring en
 
 ### Current Structure (Working)
 
-```
+```plaintext
 ghbex/
 ├── internal/
 │   ├── client/           # ✅ GitHub API clients
@@ -110,7 +110,7 @@ ghbex/
 
 ### Planned Extensions
 
-```
+```plaintext
 ghbex/
 ├── internal/
 │   ├── operators/
@@ -191,4 +191,4 @@ ghbex/
 
 ---
 
-**READY TO START PHASE 1? Let's make it happen! 🚀**
+***READY TO START PHASE 1? Let's make it happen! 🚀***
