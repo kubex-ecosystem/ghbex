@@ -26,6 +26,15 @@ github:
           max_age_days: 7
         releases:
           delete_drafts: true
+        security:
+          rotate_ssh_keys: false # Set to true to enable SSH key rotation
+          remove_old_keys: false # Remove old auto-generated keys
+          key_pattern: "ghbex-auto" # Pattern to identify auto-generated keys
+        monitoring:
+          check_inactivity: true # Monitor repository activity
+          inactive_days_threshold: 30 # Days to consider repo inactive
+          monitor_prs: true # Monitor pull request activity
+          monitor_issues: true # Monitor issue activity
 
 notifiers:
   - type: "stdout"

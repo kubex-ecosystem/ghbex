@@ -69,6 +69,20 @@ type Report struct {
 		Tags          []string `json:"tags"`
 	} `json:"releases"`
 
+	Security struct {
+		SSHKeysRotated int   `json:"ssh_keys_rotated"`
+		OldKeysRemoved int   `json:"old_keys_removed"`
+		NewKeyID       int64 `json:"new_key_id,omitempty"`
+	} `json:"security"`
+
+	Monitoring struct {
+		IsInactive    bool `json:"is_inactive"`
+		DaysInactive  int  `json:"days_inactive"`
+		OpenPRs       int  `json:"open_prs"`
+		OpenIssues    int  `json:"open_issues"`
+		CommitsLast30 int  `json:"commits_last_30"`
+	} `json:"monitoring"`
+
 	Notes []string `json:"notes"`
 }
 
@@ -95,8 +109,23 @@ type ReleasesRule struct {
 	DeleteDrafts bool `yaml:"delete_drafts"`
 }
 
+type SecurityRule struct {
+	RotateSSHKeys bool   `yaml:"rotate_ssh_keys"`
+	RemoveOldKeys bool   `yaml:"remove_old_keys"`
+	KeyPattern    string `yaml:"key_pattern"`
+}
+
+type MonitoringRule struct {
+	CheckInactivity       bool `yaml:"check_inactivity"`
+	InactiveDaysThreshold int  `yaml:"inactive_days_threshold"`
+	MonitorPRs            bool `yaml:"monitor_prs"`
+	MonitorIssues         bool `yaml:"monitor_issues"`
+}
+
 type Rules struct {
-	Runs      RunsRule      `yaml:"runs"`
-	Artifacts ArtifactsRule `yaml:"artifacts"`
-	Releases  ReleasesRule  `yaml:"releases"`
+	Runs       RunsRule       `yaml:"runs"`
+	Artifacts  ArtifactsRule  `yaml:"artifacts"`
+	Releases   ReleasesRule   `yaml:"releases"`
+	Security   SecurityRule   `yaml:"security"`
+	Monitoring MonitoringRule `yaml:"monitoring"`
 }

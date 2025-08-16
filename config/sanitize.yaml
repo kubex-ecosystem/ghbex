@@ -1,0 +1,78 @@
+runtime:
+  dry_run: true # SEMPRE começamos com dry_run!
+  report_dir: ./_reports
+
+server:
+  addr: ":8088"
+
+github:
+  auth:
+    kind: "pat"
+    token: "${GITHUB_PAT_TOKEN}"
+  repos:
+    - owner: "rafa-mori"
+      name: "gastype"
+      rules:
+        runs:
+          max_age_days: 30
+          keep_success_last: 5
+          only_workflows: []
+        artifacts:
+          max_age_days: 7
+        releases:
+          delete_drafts: true
+        security:
+          rotate_ssh_keys: false # Começamos com false pra testar
+          remove_old_keys: false
+          key_pattern: "ghbex-auto"
+        monitoring:
+          check_inactivity: true
+          inactive_days_threshold: 30
+          monitor_prs: true
+          monitor_issues: true
+    - owner: "rafa-mori"
+      name: "xtui"
+      rules:
+        runs:
+          max_age_days: 30
+          keep_success_last: 5
+          only_workflows: []
+        artifacts:
+          max_age_days: 7
+        releases:
+          delete_drafts: true
+        security:
+          rotate_ssh_keys: false
+          remove_old_keys: false
+          key_pattern: "ghbex-auto"
+        monitoring:
+          check_inactivity: true
+          inactive_days_threshold: 30
+          monitor_prs: true
+          monitor_issues: true
+    - owner: "rafa-mori"
+      name: "logz"
+      rules:
+        runs:
+          max_age_days: 30
+          keep_success_last: 5
+          only_workflows: []
+        artifacts:
+          max_age_days: 7
+        releases:
+          delete_drafts: true
+        security:
+          rotate_ssh_keys: false
+          remove_old_keys: false
+          key_pattern: "ghbex-auto"
+        monitoring:
+          check_inactivity: true
+          inactive_days_threshold: 30
+          monitor_prs: true
+          monitor_issues: true
+
+notifiers:
+  - type: "stdout"
+  # Uncomment for Discord notifications
+  # - type: "discord"
+  #   webhook: "${DISCORD_WEBHOOK_URL}"

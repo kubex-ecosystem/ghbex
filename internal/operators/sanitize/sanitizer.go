@@ -24,6 +24,18 @@ func ToMarkdown(r *defs.Report) string {
 - deleted drafts: %d
 - tags: %v
 
+## security
+- ssh keys rotated: %d
+- old keys removed: %d
+- new key id: %d
+
+## monitoring
+- is inactive: %v
+- days inactive: %d
+- open PRs: %d
+- open issues: %d
+- commits last 30 days: %d
+
 notes:
 %v
 `,
@@ -31,6 +43,8 @@ notes:
 		r.Runs.Deleted, r.Runs.Kept,
 		r.Artifacts.Deleted,
 		r.Releases.DeletedDrafts, r.Releases.Tags,
+		r.Security.SSHKeysRotated, r.Security.OldKeysRemoved, r.Security.NewKeyID,
+		r.Monitoring.IsInactive, r.Monitoring.DaysInactive, r.Monitoring.OpenPRs, r.Monitoring.OpenIssues, r.Monitoring.CommitsLast30,
 		r.Notes,
 	)
 }

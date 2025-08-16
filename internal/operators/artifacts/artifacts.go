@@ -12,15 +12,18 @@ import (
 func CleanArtifacts(ctx context.Context, cli *github.Client, owner, repo string, r defs.ArtifactsRule, dry bool) (deleted int, ids []int64, err error) {
 	cut := utils.Cutoff(r.MaxAgeDays)
 	opt := &github.ListOptions{PerPage: 100}
+
 	for {
 		arts, resp, e := cli.Actions.ListArtifacts(ctx, owner, repo, opt)
 		if e != nil {
 			err = e
 			return
 		}
+
 		for _, a := range arts.Artifacts {
 			ids = append(ids, a.GetID())
-			if cut.IsZero() || a.GetCreatedAt().Time.Before(cut) {
+			// Delete if older than cutoff date
+			if !cut.IsZero() && a.GetCreatedAt().Time.Before(cut) {
 				if dry {
 					deleted++
 					continue
@@ -29,12 +32,15 @@ func CleanArtifacts(ctx context.Context, cli *github.Client, owner, repo string,
 					deleted++
 				}
 			}
-			if resp.NextPage == 0 {
-				break
-			}
-			opt.Page = resp.NextPage
 		}
+
+		// Check for next page
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
 	}
+	return
 }
 
 func deleteArtifact(ctx context.Context, cli *github.Client, owner, repo string, id int64) error {
