@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -17,6 +18,7 @@ import (
 	"github.com/rafa-mori/ghbex/internal/defs"
 	"github.com/rafa-mori/ghbex/internal/manager"
 	notify "github.com/rafa-mori/ghbex/internal/notifiers"
+	"github.com/rafa-mori/ghbex/internal/operators/analytics"
 )
 
 type GHServerEngine interface {
@@ -214,6 +216,50 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = json.NewEncoder(w).Encode(response)
+	})
+
+	// Analytics endpoint for repository insights
+	http.HandleFunc("/analytics/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "only GET", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Parse path: /analytics/{owner}/{repo}
+		path := strings.TrimPrefix(r.URL.Path, "/analytics/")
+		parts := strings.Split(path, "/")
+		if len(parts) < 2 {
+			http.Error(w, "missing owner/repo in path", http.StatusBadRequest)
+			return
+		}
+
+		owner, repo := parts[0], parts[1]
+
+		// Get analysis days from query param (default 90)
+		analysisDays := 90
+		if days := r.URL.Query().Get("days"); days != "" {
+			if parsed, err := time.ParseDuration(days + "h"); err == nil {
+				analysisDays = int(parsed.Hours() / 24)
+			}
+		}
+
+		log.Printf("🔍 ANALYTICS REQUEST - %s/%s - Analysis Days: %d", owner, repo, analysisDays)
+		startTime := time.Now()
+
+		// Perform analytics
+		insights, err := analytics.AnalyzeRepository(r.Context(), g.ghc, owner, repo, analysisDays)
+		if err != nil {
+			log.Printf("❌ Analytics error for %s/%s: %v", owner, repo, err)
+			http.Error(w, fmt.Sprintf("Analytics failed: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		duration := time.Since(startTime)
+		log.Printf("✅ ANALYTICS COMPLETED - %s/%s - Duration: %v, Health Score: %.1f (%s)",
+			owner, repo, duration, insights.HealthScore.Overall, insights.HealthScore.Grade)
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(insights)
 	})
 
 	// route: POST /admin/repos/{owner}/{repo}/sanitize?dry_run=1
