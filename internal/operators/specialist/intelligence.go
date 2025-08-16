@@ -1,5 +1,5 @@
-// Package intelligence provides AI-powered analysis and insights for GitHub repositories.
-package intelligenceI
+// Package specialist provides AI-powered analysis and insights for GitHub repositories.
+package specialist
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 )
 
 // IntelligenceOperator provides AI-powered analysis using Grompt engine
-type IntelligenceOperatorA struct {
+type IntelligenceOperator struct {
 	client       *github.Client
 	promptEngine grompt.PromptEngine
 }
@@ -303,7 +303,7 @@ Provide recommendations as JSON array:
 }
 
 // Fallback methods for when AI is not available
-func (o *IntelligenceOperatorA) generateFallbackInsight(owner, repo string) *RepositoryInsight {
+func (o *IntelligenceOperator) generateFallbackInsight(owner, repo string) *RepositoryInsight {
 	log.Printf("⚠️  WARNING: Using SIMULATED data for %s/%s - AI analysis not available", owner, repo)
 
 	return &RepositoryInsight{
@@ -318,7 +318,7 @@ func (o *IntelligenceOperatorA) generateFallbackInsight(owner, repo string) *Rep
 	}
 }
 
-func (o *IntelligenceOperatorA) generateFallbackRecommendations(owner, repo string) []SmartRecommendation {
+func (o *IntelligenceOperator) generateFallbackRecommendations(owner, repo string) []SmartRecommendation {
 	log.Printf("⚠️  WARNING: Using SIMULATED recommendations for %s/%s - AI analysis not available", owner, repo)
 
 	return []SmartRecommendation{

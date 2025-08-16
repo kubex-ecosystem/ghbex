@@ -513,22 +513,33 @@
         const assessment = ai.assessment || 'Repository analysis available';
         const opportunity = ai.opportunity || 'Optimization ready';
 
+        // Check if this is simulated data
+        const isSimulated = score === 0.0 ||
+          assessment.includes('SIMULATED') ||
+          assessment.includes('⚠️') ||
+          mainTag === 'DEMO' ||
+          opportunity.includes('⚠️');
+
+        const cardClass = isSimulated ? 'stat-card simulated-data' : 'stat-card ai-enhanced';
+        const warningBanner = isSimulated ? '<div class="simulated-warning">⚠️ DADOS SIMULADOS</div>' : '';
+
         return `
-          <div class="stat-card ai-enhanced" onclick="analyzeRepository('${repo.owner}/${repo.name}')">
+          <div class="${cardClass}" onclick="analyzeRepository('${repo.owner}/${repo.name}')">
+            ${warningBanner}
             <div class="repo-header">
               <div class="repo-title">${repo.owner}/${repo.name}</div>
               <div class="ai-indicators">
                 <span class="health-icon">${healthIcon}</span>
-                <span class="ai-score">${score.toFixed(1)}</span>
+                <span class="ai-score ${isSimulated ? 'simulated' : ''}">${isSimulated ? 'N/A' : score.toFixed(1)}</span>
               </div>
             </div>
             <div class="repo-tags">
-              <span class="main-tag">${mainTag}</span>
-              <span class="opportunity-tag">${opportunity}</span>
+              <span class="main-tag ${isSimulated ? 'simulated' : ''}">${mainTag}</span>
+              <span class="opportunity-tag ${isSimulated ? 'simulated' : ''}">${opportunity}</span>
             </div>
-            <div class="ai-assessment">${assessment}</div>
+            <div class="ai-assessment ${isSimulated ? 'simulated' : ''}">${assessment}</div>
             <div class="stat-label">
-              <span class="click-action">🧠 Clique para análise AI completa</span>
+              <span class="click-action">${isSimulated ? '⚠️ Configure AI para dados reais' : '🧠 Clique para análise AI completa'}</span>
             </div>
           </div>
         `;
