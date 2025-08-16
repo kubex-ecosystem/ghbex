@@ -20,7 +20,7 @@ import (
 	"github.com/rafa-mori/ghbex/internal/manager"
 	"github.com/rafa-mori/ghbex/internal/notifiers"
 	"github.com/rafa-mori/ghbex/internal/operators/analytics"
-	"github.com/rafa-mori/ghbex/internal/operators/intelligence"
+	intelligence "github.com/rafa-mori/ghbex/internal/operators/specialist"
 	"github.com/rafa-mori/ghbex/internal/operators/productivity"
 )
 
