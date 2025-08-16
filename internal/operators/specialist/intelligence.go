@@ -102,7 +102,7 @@ type NextStep struct {
 }
 
 // NewIntelligenceOperator creates a new Intelligence operator
-func NewIntelligenceOperator(client *github.Client) *IntelligenceOperatorA {
+func NewIntelligenceOperator(client *github.Client) *IntelligenceOperator {
 	// Initialize Grompt with basic config
 	config := grompt.DefaultConfig()
 
@@ -128,14 +128,14 @@ func NewIntelligenceOperator(client *github.Client) *IntelligenceOperatorA {
 		}
 	}
 
-	return &IntelligenceOperatorA{
+	return &IntelligenceOperator{
 		client:       client,
 		promptEngine: grompt.NewPromptEngine(config),
 	}
 }
 
 // GenerateQuickInsight creates AI-powered insights for repository cards
-func (o *IntelligenceOperatorA) GenerateQuickInsight(ctx context.Context, owner, repo string) (*RepositoryInsight, error) {
+func (o *IntelligenceOperator) GenerateQuickInsight(ctx context.Context, owner, repo string) (*RepositoryInsight, error) {
 	log.Printf("INTELLIGENCE: Generating quick insight for %s/%s", owner, repo)
 
 	// Get basic repository info
@@ -166,7 +166,7 @@ func (o *IntelligenceOperatorA) GenerateQuickInsight(ctx context.Context, owner,
 }
 
 // GenerateSmartRecommendations creates contextual AI recommendations
-func (o *IntelligenceOperatorA) GenerateSmartRecommendations(ctx context.Context, owner, repo string) ([]SmartRecommendation, error) {
+func (o *IntelligenceOperator) GenerateSmartRecommendations(ctx context.Context, owner, repo string) ([]SmartRecommendation, error) {
 	log.Printf("INTELLIGENCE: Generating smart recommendations for %s/%s", owner, repo)
 
 	// Get repository data
@@ -195,7 +195,7 @@ func (o *IntelligenceOperatorA) GenerateSmartRecommendations(ctx context.Context
 }
 
 // analyzeRepositoryWithAI uses Grompt to analyze repository
-func (o *IntelligenceOperatorA) analyzeRepositoryWithAI(ctx context.Context, repo *github.Repository) (float64, string, error) {
+func (o *IntelligenceOperator) analyzeRepositoryWithAI(ctx context.Context, repo *github.Repository) (float64, string, error) {
 	prompt := fmt.Sprintf(`
 Analyze this GitHub repository and provide a quick assessment:
 
@@ -249,7 +249,7 @@ Format your response as JSON:
 }
 
 // generateAIRecommendations creates smart recommendations using AI
-func (o *IntelligenceOperatorA) generateAIRecommendations(ctx context.Context, repo *github.Repository, issues []*github.Issue) ([]SmartRecommendation, error) {
+func (o *IntelligenceOperator) generateAIRecommendations(ctx context.Context, repo *github.Repository, issues []*github.Issue) ([]SmartRecommendation, error) {
 	issuesContext := ""
 	if len(issues) > 0 {
 		issuesContext = fmt.Sprintf("Recent issues: %d open, latest: '%s'",
@@ -356,7 +356,7 @@ func (o *IntelligenceOperator) generateFallbackRecommendations(owner, repo strin
 }
 
 // Helper methods
-func (o *IntelligenceOperatorA) getHealthIcon(score float64) string {
+func (o *IntelligenceOperator) getHealthIcon(score float64) string {
 	if score >= 90 {
 		return "🟢"
 	} else if score >= 70 {
@@ -366,7 +366,7 @@ func (o *IntelligenceOperatorA) getHealthIcon(score float64) string {
 	}
 }
 
-func (o *IntelligenceOperatorA) generateMainTag(repo *github.Repository) string {
+func (o *IntelligenceOperator) generateMainTag(repo *github.Repository) string {
 	if repo.GetStargazersCount() > 100 {
 		return "Popular"
 	} else if repo.GetUpdatedAt().After(time.Now().AddDate(0, 0, -7)) {
@@ -377,7 +377,7 @@ func (o *IntelligenceOperatorA) generateMainTag(repo *github.Repository) string 
 	return "Project"
 }
 
-func (o *IntelligenceOperatorA) calculateRiskLevel(repo *github.Repository, aiScore float64) string {
+func (o *IntelligenceOperator) calculateRiskLevel(repo *github.Repository, aiScore float64) string {
 	if aiScore < 60 || repo.GetOpenIssuesCount() > 50 {
 		return "high"
 	} else if aiScore < 80 || repo.GetOpenIssuesCount() > 20 {
@@ -386,7 +386,7 @@ func (o *IntelligenceOperatorA) calculateRiskLevel(repo *github.Repository, aiSc
 	return "low"
 }
 
-func (o *IntelligenceOperatorA) identifyOpportunity(repo *github.Repository) string {
+func (o *IntelligenceOperator) identifyOpportunity(repo *github.Repository) string {
 	opportunities := []string{
 		"Documentation enhancement",
 		"Performance optimization",
