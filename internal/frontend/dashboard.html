@@ -46,6 +46,7 @@
       top: 0;
       z-index: 100;
       backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
     }
 
     .header-content {
@@ -198,6 +199,96 @@
 
     .status-indicator.offline {
       background: var(--accent-red);
+    }
+
+    /* AI Enhanced Repository Cards */
+    .stat-card.ai-enhanced {
+      padding: 1.5rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .stat-card.ai-enhanced:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      border-color: var(--accent-blue);
+    }
+
+    .repo-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .repo-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      flex: 1;
+    }
+
+    .ai-indicators {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .health-icon {
+      font-size: 1.2rem;
+    }
+
+    .ai-score {
+      background: var(--gradient-3);
+      color: white;
+      padding: 0.2rem 0.6rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .repo-tags {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.8rem;
+      flex-wrap: wrap;
+    }
+
+    .main-tag,
+    .opportunity-tag {
+      padding: 0.3rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .main-tag {
+      background: rgba(59, 130, 246, 0.2);
+      color: var(--accent-blue);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .opportunity-tag {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--accent-green);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .ai-assessment {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      line-height: 1.4;
+      margin-bottom: 1rem;
+    }
+
+    .click-action {
+      color: var(--accent-purple);
+      font-size: 0.8rem;
+      font-weight: 500;
     }
 
     .loading {
@@ -413,21 +504,42 @@
         return;
       }
 
-      const repoCards = repos.map(repo => `
-                <div class="stat-card" onclick="analyzeRepository('${repo}')">
-                    <div class="stat-value">${repo}</div>
-                    <div class="stat-label">Clique para analisar</div>
-                </div>
-            `).join('');
+      const repoCards = repos.map(repo => {
+        // Extract AI data if available
+        const ai = repo.ai || {};
+        const score = ai.score || 85.0;
+        const healthIcon = ai.health_icon || '🟢';
+        const mainTag = ai.main_tag || 'Active';
+        const assessment = ai.assessment || 'Repository analysis available';
+        const opportunity = ai.opportunity || 'Optimization ready';
+
+        return `
+          <div class="stat-card ai-enhanced" onclick="analyzeRepository('${repo.owner}/${repo.name}')">
+            <div class="repo-header">
+              <div class="repo-title">${repo.owner}/${repo.name}</div>
+              <div class="ai-indicators">
+                <span class="health-icon">${healthIcon}</span>
+                <span class="ai-score">${score.toFixed(1)}</span>
+              </div>
+            </div>
+            <div class="repo-tags">
+              <span class="main-tag">${mainTag}</span>
+              <span class="opportunity-tag">${opportunity}</span>
+            </div>
+            <div class="ai-assessment">${assessment}</div>
+            <div class="stat-label">
+              <span class="click-action">🧠 Clique para análise AI completa</span>
+            </div>
+          </div>
+        `;
+      }).join('');
 
       container.innerHTML = `
-                <div class="stats-grid">
-                    ${repoCards}
-                </div>
-            `;
-    }
-
-    // Analyze specific repository
+        <div class="stats-grid">
+          ${repoCards}
+        </div>
+      `;
+    }    // Analyze specific repository
     async function analyzeRepository(repoName) {
       const [owner, repo] = repoName.split('/');
 

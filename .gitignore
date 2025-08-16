@@ -55,3 +55,4 @@ tests/**/*
 */docs/mcp_implementation
 *.sarif
 /dist/
+,env
