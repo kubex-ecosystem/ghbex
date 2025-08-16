@@ -62,7 +62,15 @@ func startServer() *cobra.Command {
 		}, false),
 		Run: func(cmd *cobra.Command, args []string) {
 			// Check if config file path was provided
-			cfg := config.NewMainConfigObj()
+			configPath := "config/sanitize.yaml"
+			if configFilePath != "" {
+				configPath = configFilePath
+			}
+
+			cfg, err := config.LoadFromFile(configPath)
+			if err != nil {
+				log.Fatalf("Failed to load config: %v", err)
+			}
 
 			// Start server logic
 			ctx := context.Background()

@@ -42,10 +42,13 @@ func NewGithubClient(ctx context.Context, cfg config.MainConfig) (*github.Client
 	var err error
 	var ghc *github.Client
 	gh := cfg.GetGitHub()
+	expandedToken := os.ExpandEnv(gh.Auth.Token)
+	log.Printf("DEBUG: Auth kind: %s, Token template: %s, Expanded token length: %d",
+		gh.Auth.Kind, gh.Auth.Token, len(expandedToken))
 	switch strings.ToLower(gh.Auth.Kind) {
 	case "pat":
 		ghc, err = githubx.NewPAT(ctx, githubx.PATConfig{
-			Token:     os.ExpandEnv(gh.Auth.Token),
+			Token:     expandedToken,
 			BaseURL:   gh.Auth.BaseURL,
 			UploadURL: gh.Auth.UploadURL,
 		})
@@ -94,6 +97,125 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 		g.MainConfig,
 	)
 
+	// Health check endpoint
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "only GET", http.StatusMethodNotAllowed)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		response := map[string]interface{}{
+			"status":       "ok",
+			"version":      "0.0.1",
+			"github_auth":  g.ghc != nil,
+			"config_repos": len(g.MainConfig.GetGitHub().Repos),
+		}
+		_ = json.NewEncoder(w).Encode(response)
+	})
+
+	// List configured repositories endpoint
+	http.HandleFunc("/repos", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "only GET", http.StatusMethodNotAllowed)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+		repos := make([]map[string]interface{}, 0)
+		for _, repo := range g.MainConfig.GetGitHub().Repos {
+			repoInfo := map[string]interface{}{
+				"owner": repo.Owner,
+				"name":  repo.Name,
+				"url":   "https://github.com/" + repo.Owner + "/" + repo.Name,
+				"rules": map[string]interface{}{
+					"runs": map[string]interface{}{
+						"max_age_days":      repo.Rules.Runs.MaxAgeDays,
+						"keep_success_last": repo.Rules.Runs.KeepSuccessLast,
+					},
+					"artifacts": map[string]interface{}{
+						"max_age_days": repo.Rules.Artifacts.MaxAgeDays,
+					},
+					"monitoring": map[string]interface{}{
+						"inactive_days_threshold": repo.Rules.Monitoring.InactiveDaysThreshold,
+					},
+				},
+			}
+			repos = append(repos, repoInfo)
+		}
+
+		response := map[string]interface{}{
+			"total":        len(repos),
+			"repositories": repos,
+		}
+		_ = json.NewEncoder(w).Encode(response)
+	})
+
+	// Bulk sanitize endpoint for multiple repositories
+	http.HandleFunc("/admin/sanitize/bulk", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "only POST", http.StatusMethodNotAllowed)
+			return
+		}
+
+		dry := r.URL.Query().Get("dry_run")
+		dryRun := dry == "1" || strings.EqualFold(dry, "true")
+
+		var bulkResults []map[string]interface{}
+		totalRuns := 0
+		totalArtifacts := 0
+		startTime := time.Now()
+
+		log.Printf("🚀 BULK SANITIZATION STARTED - DRY_RUN: %v", dryRun)
+
+		for _, repoConfig := range g.MainConfig.GetGitHub().Repos {
+			log.Printf("📊 Processing %s/%s...", repoConfig.Owner, repoConfig.Name)
+
+			rpt, err := svc.SanitizeRepo(r.Context(), repoConfig.Owner, repoConfig.Name, repoConfig.Rules, dryRun)
+			if err != nil {
+				log.Printf("❌ Error processing %s/%s: %v", repoConfig.Owner, repoConfig.Name, err)
+				continue
+			}
+
+			totalRuns += rpt.Runs.Deleted
+			totalArtifacts += rpt.Artifacts.Deleted
+
+			result := map[string]interface{}{
+				"owner":     rpt.Owner,
+				"repo":      rpt.Repo,
+				"runs":      rpt.Runs.Deleted,
+				"artifacts": rpt.Artifacts.Deleted,
+				"releases":  rpt.Releases.DeletedDrafts,
+				"success":   true,
+			}
+			bulkResults = append(bulkResults, result)
+
+			log.Printf("✅ %s/%s - Runs: %d, Artifacts: %d", repoConfig.Owner, repoConfig.Name, rpt.Runs.Deleted, rpt.Artifacts.Deleted)
+		}
+
+		duration := time.Since(startTime)
+
+		response := map[string]interface{}{
+			"bulk_operation":          true,
+			"dry_run":                 dryRun,
+			"started_at":              startTime.Format("2006-01-02 15:04:05"),
+			"duration_ms":             duration.Milliseconds(),
+			"total_repos":             len(bulkResults),
+			"total_runs_cleaned":      totalRuns,
+			"total_artifacts_cleaned": totalArtifacts,
+			"productivity_summary": map[string]interface{}{
+				"estimated_storage_saved_mb": (totalRuns * 10) + (totalArtifacts * 50), // Estimativa
+				"estimated_time_saved_min":   (totalRuns + totalArtifacts) * 2,         // Estimativa
+			},
+			"repositories": bulkResults,
+		}
+
+		log.Printf("🎉 BULK SANITIZATION COMPLETED - Duration: %v, Total Runs: %d, Total Artifacts: %d",
+			duration, totalRuns, totalArtifacts)
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(response)
+	})
+
 	// route: POST /admin/repos/{owner}/{repo}/sanitize?dry_run=1
 	http.HandleFunc("/admin/repos/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -109,6 +231,9 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 		owner, repo := parts[0], parts[1]
 		dry := r.URL.Query().Get("dry_run")
 		dryRun := dry == "1" || strings.EqualFold(dry, "true")
+
+		log.Printf("🎯 INDIVIDUAL SANITIZATION - %s/%s - DRY_RUN: %v", owner, repo, dryRun)
+		startTime := time.Now()
 
 		// find rules (optional override via cfg)
 		var rules defs.Rules
@@ -135,9 +260,15 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 
 		rpt, err := svc.SanitizeRepo(r.Context(), owner, repo, rules, dryRun)
 		if err != nil {
+			log.Printf("❌ Error sanitizing %s/%s: %v", owner, repo, err)
 			http.Error(w, err.Error(), 500)
 			return
 		}
+
+		duration := time.Since(startTime)
+		log.Printf("✅ SANITIZATION COMPLETED - %s/%s - Duration: %v, Runs: %d, Artifacts: %d",
+			owner, repo, duration, rpt.Runs.Deleted, rpt.Artifacts.Deleted)
+
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = json.NewEncoder(w).Encode(rpt)
 	})

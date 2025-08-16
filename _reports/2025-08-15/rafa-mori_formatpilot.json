@@ -1,0 +1,31 @@
+{
+  "owner": "rafa-mori",
+  "repo": "formatpilot",
+  "when": "2025-08-15T21:45:44.18766824-03:00",
+  "dry_run": true,
+  "runs": {
+    "deleted": 0,
+    "kept": 0,
+    "ids": null
+  },
+  "artifacts": {
+    "deleted": 0,
+    "ids": null
+  },
+  "releases": {
+    "deleted_drafts": 0,
+    "tags": null
+  },
+  "security": {
+    "ssh_keys_rotated": 0,
+    "old_keys_removed": 0
+  },
+  "monitoring": {
+    "is_inactive": false,
+    "days_inactive": 0,
+    "open_prs": 0,
+    "open_issues": 0,
+    "commits_last_30": 0
+  },
+  "notes": null
+}

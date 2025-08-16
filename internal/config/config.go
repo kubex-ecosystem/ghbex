@@ -1,7 +1,12 @@
 // Package config provides configuration structures and interfaces for the application.
 package config
 
-import "github.com/rafa-mori/ghbex/internal/defs"
+import (
+	"os"
+
+	"github.com/rafa-mori/ghbex/internal/defs"
+	"gopkg.in/yaml.v3"
+)
 
 // var configFilePath, bindHost, port, name string
 // var debug, dryRun, background bool
@@ -27,6 +32,20 @@ func NewMainConfigObj() MainConfig {
 		GitHub:    &defs.GitHub{},
 		Notifiers: &defs.Notifiers{},
 	}
+}
+
+func LoadFromFile(filePath string) (MainConfig, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg := &MainConfigImpl{}
+	if err := yaml.Unmarshal(data, cfg); err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
 }
 
 func (c *MainConfigImpl) GetRuntime() *defs.Runtime {
