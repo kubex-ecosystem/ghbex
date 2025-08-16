@@ -1,8 +1,8 @@
 {
   "owner": "rafa-mori",
   "repo": "gocrafter",
-  "when": "2025-08-15T22:02:09.890007563-03:00",
-  "dry_run": false,
+  "when": "2025-08-15T22:57:04.082229811-03:00",
+  "dry_run": true,
   "runs": {
     "deleted": 0,
     "kept": 3,

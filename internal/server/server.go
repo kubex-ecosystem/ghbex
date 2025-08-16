@@ -19,6 +19,7 @@ import (
 	"github.com/rafa-mori/ghbex/internal/manager"
 	notify "github.com/rafa-mori/ghbex/internal/notifiers"
 	"github.com/rafa-mori/ghbex/internal/operators/analytics"
+	"github.com/rafa-mori/ghbex/internal/operators/productivity"
 )
 
 type GHServerEngine interface {
@@ -260,6 +261,41 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = json.NewEncoder(w).Encode(insights)
+	})
+
+	// route: GET /productivity/{owner}/{repo}
+	http.HandleFunc("/productivity/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "only GET", http.StatusMethodNotAllowed)
+			return
+		}
+
+		path := strings.TrimPrefix(r.URL.Path, "/productivity/")
+		parts := strings.Split(path, "/")
+		if len(parts) < 2 {
+			http.Error(w, "missing owner/repo in path", http.StatusBadRequest)
+			return
+		}
+
+		owner, repo := parts[0], parts[1]
+
+		log.Printf("🚀 PRODUCTIVITY REQUEST - %s/%s", owner, repo)
+		startTime := time.Now()
+
+		// Perform productivity analysis
+		report, err := productivity.AnalyzeProductivity(context.Background(), g.ghc, owner, repo)
+		if err != nil {
+			log.Printf("❌ Failed to analyze productivity for %s/%s: %v", owner, repo, err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		duration := time.Since(startTime)
+		log.Printf("✅ PRODUCTIVITY COMPLETE - %s/%s - Duration: %v - Actions: %d - ROI: %.1fx",
+			owner, repo, duration, len(report.Actions), report.ROI.ROIRatio)
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(report)
 	})
 
 	// route: POST /admin/repos/{owner}/{repo}/sanitize?dry_run=1

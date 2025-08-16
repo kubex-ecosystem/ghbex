@@ -1,6 +1,6 @@
 # Sanitize rafa-mori/gocrafter
-- when: 2025-08-15T22:02:09-03:00
-- dry_run: false
+- when: 2025-08-15T22:57:04-03:00
+- dry_run: true
 
 ## runs
 - deleted: 0

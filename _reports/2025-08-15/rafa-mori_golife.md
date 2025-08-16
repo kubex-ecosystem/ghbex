@@ -1,9 +1,9 @@
 # Sanitize rafa-mori/golife
-- when: 2025-08-15T22:02:11-03:00
-- dry_run: false
+- when: 2025-08-15T22:39:08-03:00
+- dry_run: true
 
 ## runs
-- deleted: 2
+- deleted: 0
 - kept(success last): 8
 
 ## artifacts
