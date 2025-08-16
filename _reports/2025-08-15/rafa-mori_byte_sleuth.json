@@ -1,21 +1,18 @@
 {
   "owner": "rafa-mori",
   "repo": "byte_sleuth",
-  "when": "2025-08-15T21:38:49.709048401-03:00",
-  "dry_run": true,
+  "when": "2025-08-15T22:02:06.407917659-03:00",
+  "dry_run": false,
   "runs": {
-    "deleted": 1,
-    "kept": 0,
+    "deleted": 0,
+    "kept": 1,
     "ids": [
       15105979084
     ]
   },
   "artifacts": {
     "deleted": 0,
-    "ids": [
-      3149209461,
-      3149207627
-    ]
+    "ids": null
   },
   "releases": {
     "deleted_drafts": 0,

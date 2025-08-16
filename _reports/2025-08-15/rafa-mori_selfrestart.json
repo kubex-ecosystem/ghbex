@@ -1,11 +1,11 @@
 {
   "owner": "rafa-mori",
   "repo": "selfrestart",
-  "when": "2025-08-15T21:38:27.884783385-03:00",
-  "dry_run": true,
+  "when": "2025-08-15T22:02:08.660766253-03:00",
+  "dry_run": false,
   "runs": {
-    "deleted": 11,
-    "kept": 0,
+    "deleted": 0,
+    "kept": 3,
     "ids": [
       16889780845,
       16428747592,

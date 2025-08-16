@@ -1,8 +1,8 @@
 {
   "owner": "rafa-mori",
   "repo": "formatpilot",
-  "when": "2025-08-15T21:45:44.18766824-03:00",
-  "dry_run": true,
+  "when": "2025-08-15T22:02:07.636673363-03:00",
+  "dry_run": false,
   "runs": {
     "deleted": 0,
     "kept": 0,

@@ -1,11 +1,11 @@
 {
   "owner": "rafa-mori",
   "repo": "golife",
-  "when": "2025-08-15T21:38:59.990722671-03:00",
-  "dry_run": true,
+  "when": "2025-08-15T22:02:11.047843499-03:00",
+  "dry_run": false,
   "runs": {
-    "deleted": 10,
-    "kept": 0,
+    "deleted": 2,
+    "kept": 8,
     "ids": [
       16872044561,
       16715355526,

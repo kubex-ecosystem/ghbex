@@ -1,10 +1,10 @@
 # Sanitize rafa-mori/byte_sleuth
-- when: 2025-08-15T21:38:49-03:00
-- dry_run: true
+- when: 2025-08-15T22:02:06-03:00
+- dry_run: false
 
 ## runs
-- deleted: 1
-- kept(success last): 0
+- deleted: 0
+- kept(success last): 1
 
 ## artifacts
 - deleted: 0

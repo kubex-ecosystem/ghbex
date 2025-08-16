@@ -1,6 +1,6 @@
 # Sanitize rafa-mori/formatpilot
-- when: 2025-08-15T21:45:44-03:00
-- dry_run: true
+- when: 2025-08-15T22:02:07-03:00
+- dry_run: false
 
 ## runs
 - deleted: 0

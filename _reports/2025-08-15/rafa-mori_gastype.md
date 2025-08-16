@@ -1,6 +1,6 @@
 # Sanitize rafa-mori/gastype
-- when: 2025-08-15T21:24:30-03:00
-- dry_run: true
+- when: 2025-08-15T22:01:55-03:00
+- dry_run: false
 
 ## runs
 - deleted: 0

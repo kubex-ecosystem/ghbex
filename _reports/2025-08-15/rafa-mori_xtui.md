@@ -1,6 +1,6 @@
 # Sanitize rafa-mori/xtui
-- when: 2025-08-15T21:24:51-03:00
-- dry_run: true
+- when: 2025-08-15T22:01:57-03:00
+- dry_run: false
 
 ## runs
 - deleted: 6

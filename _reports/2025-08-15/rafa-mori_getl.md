@@ -1,17 +1,17 @@
-# Sanitize rafa-mori/selfrestart
-- when: 2025-08-15T22:02:08-03:00
+# Sanitize rafa-mori/getl
+- when: 2025-08-15T22:02:13-03:00
 - dry_run: false
 
 ## runs
 - deleted: 0
-- kept(success last): 3
+- kept(success last): 1
 
 ## artifacts
 - deleted: 0
 
 ## releases
 - deleted drafts: 0
-- tags: [v1.0.0]
+- tags: [v1.0.2]
 
 ## security
 - ssh keys rotated: 0

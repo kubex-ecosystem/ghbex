@@ -1,6 +1,6 @@
 # Sanitize rafa-mori/logz
-- when: 2025-08-15T21:25:14-03:00
-- dry_run: true
+- when: 2025-08-15T22:02:01-03:00
+- dry_run: false
 
 ## runs
 - deleted: 6
