@@ -1,5 +1,5 @@
-// Package specialist provides AI-powered analysis and insights for GitHub repositories.
-package specialist
+// Package intelligence provides AI-powered analysis and insights for GitHub repositories.
+package intelligence
 
 import (
 	"context"
@@ -12,8 +12,8 @@ import (
 	"github.com/rafa-mori/grompt"
 )
 
-// IntelligenceOperator provides AI-powered analysis using Grompt engine
-type IntelligenceOperator struct {
+// InelligenceOperator provides AI-powered analysis using Grompt engine
+type InelligenceOperator struct {
 	client       *github.Client
 	promptEngine grompt.PromptEngine
 }
@@ -101,8 +101,8 @@ type NextStep struct {
 	Dependencies []string `json:"dependencies"`
 }
 
-// NewIntelligenceOperator creates a new Intelligence operator
-func NewIntelligenceOperator(client *github.Client) *IntelligenceOperator {
+// NewInelligenceOperator creates a new Intelligence operator
+func NewInelligenceOperator(client *github.Client) *InelligenceOperator {
 	// Initialize Grompt with basic config
 	config := grompt.DefaultConfig()
 
@@ -128,14 +128,14 @@ func NewIntelligenceOperator(client *github.Client) *IntelligenceOperator {
 		}
 	}
 
-	return &IntelligenceOperator{
+	return &InelligenceOperator{
 		client:       client,
 		promptEngine: grompt.NewPromptEngine(config),
 	}
 }
 
 // GenerateQuickInsight creates AI-powered insights for repository cards
-func (o *IntelligenceOperator) GenerateQuickInsight(ctx context.Context, owner, repo string) (*RepositoryInsight, error) {
+func (o *InelligenceOperator) GenerateQuickInsight(ctx context.Context, owner, repo string) (*RepositoryInsight, error) {
 	log.Printf("INTELLIGENCE: Generating quick insight for %s/%s", owner, repo)
 
 	// Get basic repository info
@@ -166,7 +166,7 @@ func (o *IntelligenceOperator) GenerateQuickInsight(ctx context.Context, owner, 
 }
 
 // GenerateSmartRecommendations creates contextual AI recommendations
-func (o *IntelligenceOperator) GenerateSmartRecommendations(ctx context.Context, owner, repo string) ([]SmartRecommendation, error) {
+func (o *InelligenceOperator) GenerateSmartRecommendations(ctx context.Context, owner, repo string) ([]SmartRecommendation, error) {
 	log.Printf("INTELLIGENCE: Generating smart recommendations for %s/%s", owner, repo)
 
 	// Get repository data
@@ -195,7 +195,7 @@ func (o *IntelligenceOperator) GenerateSmartRecommendations(ctx context.Context,
 }
 
 // analyzeRepositoryWithAI uses Grompt to analyze repository
-func (o *IntelligenceOperator) analyzeRepositoryWithAI(ctx context.Context, repo *github.Repository) (float64, string, error) {
+func (o *InelligenceOperator) analyzeRepositoryWithAI(ctx context.Context, repo *github.Repository) (float64, string, error) {
 	prompt := fmt.Sprintf(`
 Analyze this GitHub repository and provide a quick assessment:
 
@@ -249,7 +249,7 @@ Format your response as JSON:
 }
 
 // generateAIRecommendations creates smart recommendations using AI
-func (o *IntelligenceOperator) generateAIRecommendations(ctx context.Context, repo *github.Repository, issues []*github.Issue) ([]SmartRecommendation, error) {
+func (o *InelligenceOperator) generateAIRecommendations(ctx context.Context, repo *github.Repository, issues []*github.Issue) ([]SmartRecommendation, error) {
 	issuesContext := ""
 	if len(issues) > 0 {
 		issuesContext = fmt.Sprintf("Recent issues: %d open, latest: '%s'",
@@ -303,7 +303,7 @@ Provide recommendations as JSON array:
 }
 
 // Fallback methods for when AI is not available
-func (o *IntelligenceOperator) generateFallbackInsight(owner, repo string) *RepositoryInsight {
+func (o *InelligenceOperator) generateFallbackInsight(owner, repo string) *RepositoryInsight {
 	log.Printf("⚠️  WARNING: Using SIMULATED data for %s/%s - AI analysis not available", owner, repo)
 
 	return &RepositoryInsight{
@@ -318,7 +318,7 @@ func (o *IntelligenceOperator) generateFallbackInsight(owner, repo string) *Repo
 	}
 }
 
-func (o *IntelligenceOperator) generateFallbackRecommendations(owner, repo string) []SmartRecommendation {
+func (o *InelligenceOperator) generateFallbackRecommendations(owner, repo string) []SmartRecommendation {
 	log.Printf("⚠️  WARNING: Using SIMULATED recommendations for %s/%s - AI analysis not available", owner, repo)
 
 	return []SmartRecommendation{
@@ -356,7 +356,7 @@ func (o *IntelligenceOperator) generateFallbackRecommendations(owner, repo strin
 }
 
 // Helper methods
-func (o *IntelligenceOperator) getHealthIcon(score float64) string {
+func (o *InelligenceOperator) getHealthIcon(score float64) string {
 	if score >= 90 {
 		return "🟢"
 	} else if score >= 70 {
@@ -366,7 +366,7 @@ func (o *IntelligenceOperator) getHealthIcon(score float64) string {
 	}
 }
 
-func (o *IntelligenceOperator) generateMainTag(repo *github.Repository) string {
+func (o *InelligenceOperator) generateMainTag(repo *github.Repository) string {
 	if repo.GetStargazersCount() > 100 {
 		return "Popular"
 	} else if repo.GetUpdatedAt().After(time.Now().AddDate(0, 0, -7)) {
@@ -377,7 +377,7 @@ func (o *IntelligenceOperator) generateMainTag(repo *github.Repository) string {
 	return "Project"
 }
 
-func (o *IntelligenceOperator) calculateRiskLevel(repo *github.Repository, aiScore float64) string {
+func (o *InelligenceOperator) calculateRiskLevel(repo *github.Repository, aiScore float64) string {
 	if aiScore < 60 || repo.GetOpenIssuesCount() > 50 {
 		return "high"
 	} else if aiScore < 80 || repo.GetOpenIssuesCount() > 20 {
@@ -386,7 +386,7 @@ func (o *IntelligenceOperator) calculateRiskLevel(repo *github.Repository, aiSco
 	return "low"
 }
 
-func (o *IntelligenceOperator) identifyOpportunity(repo *github.Repository) string {
+func (o *InelligenceOperator) identifyOpportunity(repo *github.Repository) string {
 	opportunities := []string{
 		"Documentation enhancement",
 		"Performance optimization",

@@ -20,8 +20,8 @@ import (
 	"github.com/rafa-mori/ghbex/internal/manager"
 	"github.com/rafa-mori/ghbex/internal/notifiers"
 	"github.com/rafa-mori/ghbex/internal/operators/analytics"
-	intelligence "github.com/rafa-mori/ghbex/internal/operators/specialist"
 	"github.com/rafa-mori/ghbex/internal/operators/productivity"
+	i "github.com/rafa-mori/ghbex/internal/operators/intelligence"
 )
 
 type GHServerEngine interface {
@@ -145,7 +145,7 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 		// Create intelligence operator for AI insights
-		intelligenceOp := intelligence.NewIntelligenceOperator(g.ghc)
+		intelligenceOp := i.NewInelligenceOperator(g.ghc)
 
 		repos := make([]map[string]interface{}, 0)
 		for _, repo := range g.MainConfig.GetGitHub().Repos {
@@ -364,7 +364,7 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 		startTime := time.Now()
 
 		// Create intelligence operator
-		intelligenceOp := intelligence.NewIntelligenceOperator(g.ghc)
+		intelligenceOp := i.NewInelligenceOperator(g.ghc)
 
 		// Generate quick insight
 		insight, err := intelligenceOp.GenerateQuickInsight(context.Background(), owner, repo)
@@ -402,7 +402,7 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 		startTime := time.Now()
 
 		// Create intelligence operator
-		intelligenceOp := intelligence.NewIntelligenceOperator(g.ghc)
+		intelligenceOp := i.NewInelligenceOperator(g.ghc)
 
 		// Generate smart recommendations
 		recommendations, err := intelligenceOp.GenerateSmartRecommendations(context.Background(), owner, repo)
