@@ -220,6 +220,19 @@ func getRoutesMap(svc *automation.Service, g *ghServerEngine) map[string]http.Ha
 	router := http.NewServeMux()
 
 	// route: GET /health
+
+	router.Handle("/health", routes["/health"])
+	router.Handle("/repos", routes["/repos"])
+	router.Handle("/admin/sanitize/bulk", routes["/admin/sanitize/bulk"])
+	router.Handle("/analytics/", routes["/analytics/"])
+	router.Handle("/productivity/", routes["/productivity/"])
+	router.Handle("/intelligence/quick/", routes["/intelligence/quick/"])
+	router.Handle("/intelligence/recommendations/", routes["/intelligence/recommendations/"])
+	router.Handle("/automation/", routes["/automation/"])
+	router.Handle("/admin/repos/", routes["/admin/repos/"])
+	router.Handle("/", routes["/"])
+
+	// route: GET /repos
 	routes["/health"] = http.HandlerFunc(
 		func() http.HandlerFunc {
 			return func(w http.ResponseWriter, r *http.Request) {
@@ -237,8 +250,6 @@ func getRoutesMap(svc *automation.Service, g *ghServerEngine) map[string]http.Ha
 			}
 		}(),
 	)
-	router.Handle("/health", routes["/health"])
-
 	// route: GET /repos
 	routes["/repos"] = http.HandlerFunc(
 		func() http.HandlerFunc {
@@ -330,8 +341,6 @@ func getRoutesMap(svc *automation.Service, g *ghServerEngine) map[string]http.Ha
 			}
 		}(),
 	)
-	router.Handle("/repos", routes["/repos"])
-
 	// route: POST /admin/sanitize/bulk
 	routes["/admin/sanitize/bulk"] = http.HandlerFunc(
 		func() http.HandlerFunc {
@@ -405,8 +414,6 @@ func getRoutesMap(svc *automation.Service, g *ghServerEngine) map[string]http.Ha
 			}
 		}(),
 	)
-	router.Handle("/admin/sanitize/bulk", routes["/admin/sanitize/bulk"])
-
 	// route: GET /analytics/{owner}/{repo}
 	routes["/analytics/"] = http.HandlerFunc(
 		func() http.HandlerFunc {
@@ -454,8 +461,6 @@ func getRoutesMap(svc *automation.Service, g *ghServerEngine) map[string]http.Ha
 			}
 		}(),
 	)
-	router.Handle("/analytics/", routes["/analytics/"])
-
 	// route: GET /productivity/{owner}/{repo}
 	routes["/productivity/"] = http.HandlerFunc(
 		func() http.HandlerFunc {
@@ -494,8 +499,6 @@ func getRoutesMap(svc *automation.Service, g *ghServerEngine) map[string]http.Ha
 			}
 		}(),
 	)
-	router.Handle("/productivity/", routes["/productivity/"])
-
 	// route: GET /intelligence/quick/{owner}/{repo}
 	routes["/intelligence/quick/"] = http.HandlerFunc(
 		func() http.HandlerFunc {
@@ -565,8 +568,6 @@ func getRoutesMap(svc *automation.Service, g *ghServerEngine) map[string]http.Ha
 			}
 		}(),
 	)
-	router.Handle("/intelligence/quick/", routes["/intelligence/quick/"])
-
 	// route: GET /intelligence/recommendations/{owner}/{repo}
 	routes["/intelligence/recommendations/"] = http.HandlerFunc(
 		func() http.HandlerFunc {
@@ -608,8 +609,6 @@ func getRoutesMap(svc *automation.Service, g *ghServerEngine) map[string]http.Ha
 			}
 		}(),
 	)
-	router.Handle("/intelligence/recommendations/", routes["/intelligence/recommendations/"])
-
 	// route: GET /automation/{owner}/{repo}
 	routes["/automation/"] = http.HandlerFunc(
 		func() http.HandlerFunc {
@@ -657,8 +656,6 @@ func getRoutesMap(svc *automation.Service, g *ghServerEngine) map[string]http.Ha
 			}
 		}(),
 	)
-	router.Handle("/automation/", routes["/automation/"])
-
 	// route: POST /admin/repos/{owner}/{repo}/sanitize?dry_run=1
 	routes["/admin/repos/"] = http.HandlerFunc(
 		func() http.HandlerFunc {
@@ -716,8 +713,6 @@ func getRoutesMap(svc *automation.Service, g *ghServerEngine) map[string]http.Ha
 			}
 		}(),
 	)
-	router.Handle("/admin/repos/", routes["/admin/repos/"])
-
 	// route: GET /
 	routes["/"] = http.HandlerFunc(
 		func() http.HandlerFunc {
@@ -731,7 +726,6 @@ func getRoutesMap(svc *automation.Service, g *ghServerEngine) map[string]http.Ha
 			}
 		}(),
 	)
-	router.Handle("/", routes["/"])
 
 	return routes
 }
