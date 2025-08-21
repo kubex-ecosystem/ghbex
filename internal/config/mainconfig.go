@@ -2,13 +2,11 @@
 package config
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
-	github "github.com/google/go-github/v61/github"
-	"github.com/rafa-mori/ghbex/internal/client"
 	"github.com/rafa-mori/ghbex/internal/defs"
 	"github.com/rafa-mori/ghbex/internal/interfaces"
 	"github.com/rafa-mori/grompt"
@@ -134,41 +132,58 @@ func NewMainConfigType(
 		Grompt: defs.NewPromptEngine(gromptEngineCfg),
 	}
 
-	ghc, ghcErr := client.NewPAT(
-		context.Background(),
-		client.PATConfig{
-			Token:     cfg.Token,
-			BaseURL:   cfg.BaseURL,
-			UploadURL: cfg.UploadURL,
-		},
-	)
-	if ghcErr != nil {
-		gl.Log("error", "Failed to create GitHub client: %v", ghcErr)
-		return nil, fmt.Errorf("failed to create GitHub client: %v", ghcErr)
-	}
+	// 🛡️ CRITICAL SECURITY: NEVER auto-discover all repositories!
+	// Only use explicitly provided repositories to prevent accidental universe scanning
 
-	repoList, repoListResp, repoListErr := ghc.Repositories.ListByAuthenticatedUser(
-		context.Background(),
-		&github.RepositoryListByAuthenticatedUserOptions{
-			Visibility:  "all",
-			Affiliation: "owner",
-			//Type:        "owner",
-		},
-	)
-	if repoListErr != nil {
-		gl.Log("error", "Failed to get repository list: %v", repoListErr)
-		return nil, fmt.Errorf("failed to get repository list: %v", repoListErr)
-	}
-
-	if repoListResp.NextPage == 0 {
-		gl.Log("debug", "No repositories found for the owner %s", owner)
+	// Priority order: CLI args -> ENV var -> empty (NEVER auto-discover)
+	var explicitRepos []string
+	if len(repositories) > 0 {
+		explicitRepos = repositories
+		gl.Log("info", "🎯 Using %d repositories from CLI arguments", len(explicitRepos))
 	} else {
-		gl.Log("debug", "Found %d repositories for the owner %s", len(repoList), owner)
-		repos := make([]*defs.RepoCfg, 0, len(repoList))
-		for _, repo := range repoList {
+		repoListEnv := GetEnvOrDefault("REPO_LIST", "")
+		if repoListEnv != "" {
+			explicitRepos = strings.Split(repoListEnv, ",")
+			gl.Log("info", "🎯 Using %d repositories from REPO_LIST env var", len(explicitRepos))
+		} else {
+			gl.Log("warning", "🚨 NO REPOSITORIES CONFIGURED - Using EMPTY list for safety")
+			gl.Log("info", "📋 To configure repositories, use:")
+			gl.Log("info", "   • CLI flag: --repos 'owner/repo1,owner/repo2'")
+			gl.Log("info", "   • ENV var: REPO_LIST='owner/repo1,owner/repo2'")
+			gl.Log("info", "🛡️ This prevents accidental scanning of all GitHub repositories")
+			explicitRepos = []string{}
+		}
+	}
+
+	// Process only explicitly configured repositories
+	if len(explicitRepos) > 0 {
+		gl.Log("info", "✅ Processing explicitly configured repositories:")
+		repos := make([]*defs.RepoCfg, 0, len(explicitRepos))
+		for _, repoSpec := range explicitRepos {
+			// Clean and validate repo specification
+			repoSpec = strings.TrimSpace(repoSpec)
+			if repoSpec == "" {
+				continue
+			}
+
+			parts := strings.Split(repoSpec, "/")
+			if len(parts) != 2 {
+				gl.Log("warning", "⚠️ Invalid repository format '%s' - expected 'owner/repo'", repoSpec)
+				continue
+			}
+
+			repoOwner := strings.TrimSpace(parts[0])
+			repoName := strings.TrimSpace(parts[1])
+
+			if repoOwner == "" || repoName == "" {
+				gl.Log("warning", "⚠️ Invalid repository format '%s' - owner and repo cannot be empty", repoSpec)
+				continue
+			}
+
+			gl.Log("info", "   📦 %s/%s", repoOwner, repoName)
 			repos = append(repos, defs.NewRepoCfgType(
-				repo.GetOwner().GetLogin(),
-				repo.GetName(),
+				repoOwner,
+				repoName,
 				defs.NewRules(
 					defs.NewRunsRuleType(
 						GetEnvOrDefault("GITHUB_REPO_RUNS_MAX_AGE_DAYS", 30),
@@ -306,8 +321,7 @@ func (c *MainConfig) GetConfigObject() any {
 	if c == nil {
 		return nil
 	}
-	var obj any
-	obj = &MainConfig{
+	var obj any = &MainConfig{
 		Runtime:   c.Runtime,
 		Server:    c.Server,
 		GitHub:    c.GitHub,

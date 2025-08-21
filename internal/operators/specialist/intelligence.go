@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/google/go-github/v61/github"
@@ -481,16 +482,55 @@ func (o *IntelligenceOperator) calculateRiskLevel(repo *github.Repository, aiSco
 }
 
 func (o *IntelligenceOperator) identifyOpportunity(repo *github.Repository) string {
-	opportunities := []string{
-		"Documentation enhancement",
-		"Performance optimization",
-		"Security improvements",
-		"Community engagement",
-		"Code quality boost",
-		"Test coverage expansion",
+	// Intelligent opportunity identification based on repository characteristics
+
+	stars := repo.GetStargazersCount()
+	forks := repo.GetForksCount()
+	language := repo.GetLanguage()
+	hasIssues := repo.GetHasIssues()
+	openIssues := repo.GetOpenIssuesCount()
+	size := repo.GetSize()
+
+	// High-value projects (many stars/forks) = community/performance focus
+	if stars > 100 || forks > 50 {
+		if stars > forks*3 {
+			return "🌟 Community Engagement - High visibility project can benefit from contributor guides, better issue templates, and community events"
+		}
+		return "⚡ Performance Optimization - Popular project should focus on speed, scalability, and resource efficiency"
 	}
 
-	// Simple deterministic selection based on repo characteristics
-	index := (repo.GetStargazersCount() + repo.GetForksCount()) % len(opportunities)
-	return opportunities[index]
+	// Active development (many issues) = documentation/code quality
+	if hasIssues && openIssues > 10 {
+		if openIssues > 50 {
+			return "📋 Issue Management - High issue volume suggests need for better triage, automation, and contributor onboarding"
+		}
+		return "📚 Documentation Enhancement - Active project with issues needs better docs, examples, and troubleshooting guides"
+	}
+
+	// Large codebase = architecture/testing focus
+	if size > 10000 { // KB
+		return "🏗️ Architecture Modernization - Large codebase benefits from refactoring, modularization, and technical debt reduction"
+	}
+
+	// Language-specific opportunities
+	switch strings.ToLower(language) {
+	case "javascript", "typescript":
+		return "🔒 Security Hardening - JavaScript projects benefit from dependency auditing, CSP implementation, and security linting"
+	case "python":
+		return "🧪 Test Coverage Expansion - Python projects can leverage pytest, coverage analysis, and automated testing"
+	case "go":
+		return "📦 Go Module Optimization - Go projects benefit from dependency management, build optimization, and concurrent programming"
+	case "java":
+		return "🚀 Performance Tuning - Java projects can benefit from JVM optimization, memory profiling, and microservices architecture"
+	case "rust":
+		return "🛡️ Memory Safety Validation - Rust projects benefit from unsafe code review, fuzzing, and performance benchmarking"
+	}
+
+	// Small/new projects = foundation building
+	if stars < 10 && forks < 5 {
+		return "🌱 Project Foundation - New project needs README improvement, CI/CD setup, and development workflow establishment"
+	}
+
+	// Default comprehensive improvement
+	return "🔄 Code Quality Boost - Repository would benefit from linting setup, automated testing, and development workflow improvements"
 }

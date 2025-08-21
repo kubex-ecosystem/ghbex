@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/go-github/v61/github"
@@ -22,6 +23,16 @@ type IntelligenceOperator struct {
 	client       *github.Client
 	promptEngine defs.PromptEngine
 	mainConfig   interfaces.IMainConfig
+
+	// Health check cache para evitar verificações repetitivas
+	healthCache      map[string]healthStatus
+	healthCacheMutex sync.RWMutex
+}
+
+// healthStatus armazena o status de saúde de um provider com timestamp
+type healthStatus struct {
+	isHealthy bool
+	lastCheck time.Time
 }
 
 // RepositoryInsight provides quick AI insights for repository cards
@@ -179,9 +190,11 @@ func NewIntelligenceOperator(cfg interfaces.IMainConfig, client *github.Client) 
 	}
 
 	return &IntelligenceOperator{
-		client:       client,
-		promptEngine: engine,
-		mainConfig:   cfg,
+		client:           client,
+		promptEngine:     engine,
+		mainConfig:       cfg,
+		healthCache:      make(map[string]healthStatus),
+		healthCacheMutex: sync.RWMutex{},
 	}
 }
 
@@ -193,38 +206,22 @@ func (o *IntelligenceOperator) GenerateQuickInsight(ctx context.Context, owner, 
 	}
 
 	gl.Log("debug", fmt.Sprintf("INTELLIGENCE: Generating quick insight for %s/%s", owner, repo))
-	// Generate AI-powered assessment using Grompt
-	var repoInfo *github.Repository
-	var repoInfoResponse *github.Response
-	var err error
+
+	// 🛡️ CRITICAL SECURITY: NEVER auto-discover repositories!
+	// Only process explicitly provided owner/repo combinations
 	if owner == "" || repo == "" {
-		var reposInfo []*github.Repository
-		reposInfo, repoInfoResponse, err = o.client.Repositories.ListByAuthenticatedUser(
-			ctx,
-			&github.RepositoryListByAuthenticatedUserOptions{
-				Visibility:  "all",
-				Affiliation: "owner",
-				Type:        "owner",
-			},
-		)
-		if err != nil {
-			gl.Log("error", fmt.Sprintf("INTELLIGENCE: error getting repositories for authenticated user: %v", err))
-			return nil, fmt.Errorf("error getting repositories for authenticated user: %w", err)
-		}
-		if len(reposInfo) == 0 {
-			gl.Log("warn", fmt.Sprintf("INTELLIGENCE: No repositories found for authenticated user"))
-			return nil, fmt.Errorf("no repositories found for authenticated user")
-		}
-		if len(reposInfo) > 0 {
-			repoInfo = reposInfo[0] // Just take the first one for quick insight
-		}
-	} else {
-		repoInfo, repoInfoResponse, err = o.client.Repositories.Get(
-			ctx,
-			owner,
-			repo,
-		)
+		gl.Log("error", "🚨 INTELLIGENCE: Owner and repo must be explicitly provided - auto-discovery is DISABLED for security")
+		gl.Log("info", "📋 To use intelligence operator, provide explicit repository: --owner 'user' --repo 'repository'")
+		gl.Log("info", "🛡️ This prevents accidental scanning of all GitHub repositories")
+		return nil, fmt.Errorf("owner and repo must be explicitly provided - auto-discovery disabled for security")
 	}
+
+	// Generate AI-powered assessment using Grompt for the EXPLICIT repository
+	repoInfo, repoInfoResponse, err := o.client.Repositories.Get(
+		ctx,
+		owner,
+		repo,
+	)
 	if err != nil && repoInfo == nil {
 		gl.Log("error", fmt.Sprintf("INTELLIGENCE: error getting quick repository (%s/%s) info: %v", owner, repo, err))
 		return nil, fmt.Errorf("error getting quick repository info: %w", err)
@@ -305,6 +302,12 @@ func (o *IntelligenceOperator) GenerateSmartRecommendations(ctx context.Context,
 
 // analyzeRepositoryWithAI uses Grompt to analyze repository
 func (o *IntelligenceOperator) analyzeRepositoryWithAI(ctx context.Context, repo *github.Repository) (float64, string, error) {
+	// 🛡️ CRITICAL: Validate repository input
+	if repo == nil {
+		gl.Log("error", "INTELLIGENCE: Repository is nil, cannot analyze")
+		return 0.0, "❌ AI analysis failed - Repository data unavailable", fmt.Errorf("repository is nil")
+	}
+
 	defer func(c context.Context) {
 		if err := recover(); err != nil {
 			gl.Log("error", fmt.Sprintf("INTELLIGENCE: AI analysis failed: %v", err))
@@ -333,7 +336,7 @@ Please provide:
 
 Format your response as JSON:
 {
-	"score": 85.5,
+	"score": %.2f,
 	"assessment": "Active Go project with good community engagement and recent updates"
 }
 `,
@@ -345,29 +348,30 @@ Format your response as JSON:
 		repo.GetOpenIssuesCount(),
 		repo.GetCreatedAt().Format("2006-01-02"),
 		repo.GetUpdatedAt().Format("2006-01-02"),
+		(float64(repo.GetStargazersCount())*float64(0.1) + float64(repo.GetForksCount())*float64(0.05) + float64(repo.GetOpenIssuesCount())*0.02),
 	)
 	if o.promptEngine == nil {
-		return 0.0, "⚠️  SIMULATED - AI analysis unavailable", fmt.Errorf("prompt engine not initialized")
+		return 0.0, "❌ AI analysis unavailable - No prompt engine configured", fmt.Errorf("prompt engine not initialized")
 	}
 
 	llmProviders := o.promptEngine.GetProviders()
 	if len(llmProviders) == 0 {
-		return 0.0, "⚠️  SIMULATED - AI analysis unavailable", fmt.Errorf("no LLM providers available")
+		return 0.0, "❌ AI analysis unavailable - No LLM providers available", fmt.Errorf("no LLM providers available")
 	}
 
 	// Use the first available provider for simplicity
-	provider := getBetterAvailableProvider(llmProviders, &defs.Capabilities{}, repo, prompt)
+	provider := getBetterAvailableProvider(llmProviders, &defs.Capabilities{}, prompt)
 
 	providerResponse, providerErr := provider.Execute(
 		prompt,
 	)
 	if providerErr != nil {
 		gl.Log("error", fmt.Sprintf("INTELLIGENCE: AI provider execution failed: %v", providerErr))
-		return 0, "", nil
+		return 0, "❌ AI provider execution failed", providerErr
 	}
 	if providerResponse == "" {
-		gl.Log("warn", "INTELLIGENCE: AI provider returned empty response, using simulated data")
-		return 0, "Provider returned empty response", nil
+		gl.Log("warn", "INTELLIGENCE: AI provider returned empty response")
+		return 0, "❌ AI provider returned empty response", nil
 	}
 
 	// Parse the AI response
@@ -375,21 +379,20 @@ Format your response as JSON:
 		Response string `json:"response"`
 	}
 	if err := json.Unmarshal([]byte(providerResponse), &response); err != nil {
-		gl.Log("warn", fmt.Sprintf("AI response parsing failed for %s, using simulated data", repo.GetFullName()))
-		return 0, "AI parsing failed", nil
+		gl.Log("warn", fmt.Sprintf("AI response parsing failed for %s", repo.GetFullName()))
+		return 0, "❌ AI response parsing failed", err
 	}
 	if response.Response == "" {
 		gl.Log("warn", fmt.Sprintf("AI response is empty for %s", repo.GetFullName()))
-		return 0, "AI response is empty", nil
+		return 0, "❌ AI response is empty", nil
 	}
 
 	// Parse the AI result
 	var result defs.GromptResult
 
 	if err := json.Unmarshal([]byte(response.Response), &result); err != nil {
-		// Fallback if JSON parsing fails - CLEARLY MARKED AS SIMULATED
-		gl.Log("warn", fmt.Sprintf("AI parsing failed for %s, using simulated data", repo.GetFullName()))
-		return 0.0, "AI parsing failed", nil
+		gl.Log("warn", fmt.Sprintf("AI parsing failed for %s", repo.GetFullName()))
+		return 0.0, "❌ AI result parsing failed", err
 	}
 
 	return result.Score, result.Assessment, nil
@@ -461,55 +464,24 @@ Provide recommendations as JSON array:
 
 // Fallback methods for when AI is not available
 func (o *IntelligenceOperator) generateFallbackInsight(owner, repo string) *RepositoryInsight {
-	gl.Log("info", fmt.Sprintf("Using SIMULATED insight for %s/%s - AI analysis not available", owner, repo))
+	gl.Log("warn", fmt.Sprintf("AI analysis unavailable for %s/%s - returning empty response", owner, repo))
 
 	return &RepositoryInsight{
 		RepositoryName:  fmt.Sprintf("%s/%s", owner, repo),
-		AIScore:         0.0, // Clear indicator this is not real
-		QuickAssessment: "⚠️  SIMULATED DATA - AI analysis unavailable",
-		HealthIcon:      "⚠️",
-		MainTag:         "DEMO",
+		AIScore:         0.0,
+		QuickAssessment: "❌ AI analysis unavailable - No insight providers configured",
+		HealthIcon:      "❌",
+		MainTag:         "UNAVAILABLE",
 		RiskLevel:       "unknown",
-		Opportunity:     "⚠️  Enable AI analysis for real insights",
+		Opportunity:     "Configure AI providers to enable intelligent analysis",
 		LastAnalyzed:    time.Now(),
 	}
 }
 
 func (o *IntelligenceOperator) generateFallbackRecommendations(owner, repo string) []SmartRecommendation {
-	gl.Log("info", fmt.Sprintf("Using SIMULATED recommendations for %s/%s - AI analysis not available", owner, repo))
+	gl.Log("warn", fmt.Sprintf("AI analysis unavailable for %s/%s - returning empty recommendations", owner, repo))
 
-	return []SmartRecommendation{
-		{
-			ID:          fmt.Sprintf("DEMO-%s-1", repo),
-			Type:        "warning",
-			Title:       "⚠️  SIMULATED DATA - Enable AI Analysis",
-			Description: "This is demonstration data. Configure AI providers for real insights.",
-			Impact:      "demo",
-			Effort:      "demo",
-			Urgency:     "demo",
-			GeneratedAt: time.Now(),
-		},
-		{
-			ID:          fmt.Sprintf("DEMO-%s-2", repo),
-			Type:        "info",
-			Title:       "🔧 Configure Grompt Integration",
-			Description: "Set up OpenAI, Claude, or other AI providers for real analysis.",
-			Impact:      "demo",
-			Effort:      "demo",
-			Urgency:     "demo",
-			GeneratedAt: time.Now(),
-		},
-		{
-			ID:          fmt.Sprintf("DEMO-%s-3", repo),
-			Type:        "placeholder",
-			Title:       "📊 Real Insights Available Soon",
-			Description: "Connect AI services to get actionable repository recommendations.",
-			Impact:      "demo",
-			Effort:      "demo",
-			Urgency:     "demo",
-			GeneratedAt: time.Now(),
-		},
-	}
+	return []SmartRecommendation{}
 }
 
 // Helper methods
@@ -524,14 +496,80 @@ func (o *IntelligenceOperator) getHealthIcon(score float64) string {
 }
 
 func (o *IntelligenceOperator) generateMainTag(repo *github.Repository) string {
-	if repo.GetStargazersCount() > 100 {
-		return "Popular"
-	} else if repo.GetUpdatedAt().After(time.Now().AddDate(0, 0, -7)) {
-		return "Active"
-	} else if repo.GetLanguage() != "" {
-		return repo.GetLanguage()
+	// Multi-factor tag generation based on repository characteristics
+
+	stars := repo.GetStargazersCount()
+	forks := repo.GetForksCount()
+	issues := repo.GetOpenIssuesCount()
+	language := repo.GetLanguage()
+	daysSinceUpdate := int(time.Since(repo.GetUpdatedAt().Time).Hours() / 24)
+
+	// Viral/trending projects
+	if stars > 10000 {
+		return "🔥 Viral"
 	}
-	return "Project"
+
+	// Very popular projects
+	if stars > 1000 {
+		return "⭐ Popular"
+	}
+
+	// Active development
+	if daysSinceUpdate <= 1 {
+		return "🚀 Hot"
+	} else if daysSinceUpdate <= 7 {
+		return "💫 Active"
+	}
+
+	// High community engagement
+	if forks > stars/2 && stars > 50 {
+		return "🤝 Community"
+	}
+
+	// Maintenance mode indicators
+	if issues > 50 && daysSinceUpdate > 30 {
+		return "🔧 Maintenance"
+	}
+
+	// Early stage projects
+	if stars < 10 && daysSinceUpdate <= 7 {
+		return "🌱 Emerging"
+	}
+
+	// Stable/mature projects
+	if stars > 100 && daysSinceUpdate <= 30 {
+		return "✅ Stable"
+	}
+
+	// Language-specific tags for smaller projects
+	if language != "" && stars < 100 {
+		switch language {
+		case "Go":
+			return "🐹 Go"
+		case "JavaScript", "TypeScript":
+			return "⚡ JS/TS"
+		case "Python":
+			return "🐍 Python"
+		case "Rust":
+			return "🦀 Rust"
+		case "Java":
+			return "☕ Java"
+		case "C++":
+			return "⚡ C++"
+		default:
+			return language
+		}
+	}
+
+	// Archived or stale projects
+	if daysSinceUpdate > 365 {
+		return "📦 Archived"
+	} else if daysSinceUpdate > 90 {
+		return "😴 Stale"
+	}
+
+	// Default fallback
+	return "📁 Project"
 }
 
 func (o *IntelligenceOperator) calculateRiskLevel(repo *github.Repository, aiScore float64) string {
@@ -544,36 +582,546 @@ func (o *IntelligenceOperator) calculateRiskLevel(repo *github.Repository, aiSco
 }
 
 func (o *IntelligenceOperator) identifyOpportunity(repo *github.Repository) string {
-	opportunities := []string{
-		"Documentation enhancement",
-		"Performance optimization",
-		"Security improvements",
-		"Community engagement",
-		"Code quality boost",
-		"Test coverage expansion",
+	// Intelligent opportunity identification based on repository characteristics
+
+	// High-priority opportunities based on repo state
+	if repo.GetOpenIssuesCount() > 20 {
+		return "Issue management optimization"
 	}
 
-	// Simple deterministic selection based on repo characteristics
-	index := (repo.GetStargazersCount() + repo.GetForksCount()) % len(opportunities)
-	return opportunities[index]
+	if repo.GetDescription() == "" || len(repo.GetDescription()) < 50 {
+		return "Documentation enhancement"
+	}
+
+	// Language-specific opportunities
+	language := repo.GetLanguage()
+	switch language {
+	case "Go":
+		return "Performance optimization and testing"
+	case "JavaScript", "TypeScript":
+		return "Code quality and security scanning"
+	case "Python":
+		return "Dependency management and testing"
+	case "Java":
+		return "Performance monitoring and optimization"
+	case "C++", "C":
+		return "Memory safety and performance analysis"
+	case "Rust":
+		return "Cargo optimization and benchmarking"
+	default:
+		// Continue to activity-based analysis
+	}
+
+	// Activity-based opportunities
+	daysSinceUpdate := int(time.Since(repo.GetUpdatedAt().Time).Hours() / 24)
+	if daysSinceUpdate > 30 {
+		return "Project reactivation and maintenance"
+	}
+
+	// Community-based opportunities
+	if repo.GetStargazersCount() > 100 && repo.GetForksCount() < 10 {
+		return "Community engagement and contribution guidelines"
+	}
+
+	if repo.GetForksCount() > repo.GetStargazersCount()/2 {
+		return "Contributor onboarding and collaboration tools"
+	}
+
+	// Repository maturity based opportunities
+	if repo.GetStargazersCount() < 10 {
+		return "Visibility and marketing enhancement"
+	}
+
+	if repo.GetStargazersCount() > 1000 {
+		return "Scaling and infrastructure optimization"
+	}
+
+	// Default opportunity for active, well-maintained repos
+	return "Continuous improvement and innovation"
+}
+
+// ProviderScore represents the scoring for a provider
+type ProviderScore struct {
+	Provider defs.Provider
+	Score    float64
+	Reason   string
 }
 
 func getBetterAvailableProvider(
 	providers []defs.Provider,
 	requiredCapabilities *defs.Capabilities,
-	repository *github.Repository,
 	prompt string,
 ) defs.Provider {
+	if len(providers) == 0 {
+		gl.Log("error", "No providers available")
+		return nil
+	}
+
+	// Score all available providers
+	var scores []ProviderScore
+	promptLength := len(prompt)
+
 	for _, provider := range providers {
-		if provider.IsAvailable() &&
-			len(prompt) <= provider.GetCapabilities().MaxTokens &&
-			(provider.GetCapabilities().SupportsBatch && requiredCapabilities.SupportsBatch) &&
-			(provider.GetCapabilities().SupportsStreaming && requiredCapabilities.SupportsStreaming) &&
-			(provider.GetCapabilities().Models != nil && len(provider.GetCapabilities().Models) > 0) {
-			gl.Log("info", fmt.Sprintf("Using provider %s for prompt: %s", provider.Name(), prompt))
-			return provider
+		if !provider.IsAvailable() {
+			gl.Log("debug", fmt.Sprintf("Provider %s is not available", provider.Name()))
+			continue
+		}
+
+		capabilities := provider.GetCapabilities()
+		if capabilities == nil {
+			gl.Log("debug", fmt.Sprintf("Provider %s has no capabilities", provider.Name()))
+			continue
+		}
+
+		// Check basic requirements
+		if promptLength > capabilities.MaxTokens {
+			gl.Log("debug", fmt.Sprintf("Provider %s: prompt too long (%d > %d)",
+				provider.Name(), promptLength, capabilities.MaxTokens))
+			continue
+		}
+
+		// Calculate provider score based on multiple factors
+		score := calculateProviderScore(provider, requiredCapabilities, prompt)
+
+		scores = append(scores, ProviderScore{
+			Provider: provider,
+			Score:    score,
+			Reason:   getScoreReason(provider, score),
+		})
+	}
+
+	if len(scores) == 0 {
+		gl.Log("warn", "No suitable providers found after scoring")
+		return nil
+	}
+
+	// Sort by score (highest first)
+	for i := 0; i < len(scores)-1; i++ {
+		for j := i + 1; j < len(scores); j++ {
+			if scores[i].Score < scores[j].Score {
+				scores[i], scores[j] = scores[j], scores[i]
+			}
 		}
 	}
-	gl.Log("warn", fmt.Sprintf("No suitable provider found for prompt: %s", prompt))
-	return nil
+
+	// Select the best provider
+	bestProvider := scores[0]
+
+	gl.Log("info", fmt.Sprintf("Selected provider %s (score: %.2f) - %s",
+		bestProvider.Provider.Name(), bestProvider.Score, bestProvider.Reason))
+
+	// Log other options for transparency
+	for i := 1; i < len(scores) && i < 3; i++ {
+		gl.Log("debug", fmt.Sprintf("Alternative: %s (score: %.2f) - %s",
+			scores[i].Provider.Name(), scores[i].Score, scores[i].Reason))
+	}
+
+	return bestProvider.Provider
+}
+
+// calculateProviderScore scores a provider based on multiple factors
+func calculateProviderScore(provider defs.Provider, required *defs.Capabilities, prompt string) float64 {
+	score := 0.0
+	capabilities := provider.GetCapabilities()
+
+	// 🚀 CONCURRENT HEALTH CHECK - Verificação rápida de disponibilidade real
+	if isProviderHealthy := checkProviderHealth(provider); !isProviderHealthy {
+		gl.Log("warn", fmt.Sprintf("Provider %s failed health check - penalizing score", provider.Name()))
+		return 5.0 // Score muito baixo para providers não disponíveis
+	}
+
+	// Base availability score
+	if provider.IsAvailable() {
+		score += 20.0
+	}
+
+	// Model quality scoring (provider-specific knowledge)
+	switch provider.Name() {
+	case "claude":
+		score += 25.0 // Excellent for code analysis and reasoning
+	case "openai", "chatgpt":
+		score += 23.0 // Very good general purpose
+	case "deepseek":
+		score += 20.0 // Good for code-related tasks
+	case "gemini":
+		score += 22.0 // Especialmente bom com 2.5 flash para análise rápida
+	case "ollama":
+		score += 15.0 // Local, but may be slower
+	default:
+		score += 10.0 // Unknown provider
+	}
+
+	// Token capacity scoring (more headroom = better)
+	promptLen := float64(len(prompt))
+	maxTokens := float64(capabilities.MaxTokens)
+	if maxTokens > 0 {
+		utilizationRatio := promptLen / maxTokens
+		if utilizationRatio < 0.5 { // Plenty of headroom
+			score += 15.0
+		} else if utilizationRatio < 0.8 { // Reasonable headroom
+			score += 10.0
+		} else { // Tight fit
+			score += 5.0
+		}
+	}
+
+	// Capability matching (only add if actually required)
+	if required != nil {
+		if required.SupportsBatch && capabilities.SupportsBatch {
+			score += 5.0
+		}
+		if required.SupportsStreaming && capabilities.SupportsStreaming {
+			score += 5.0
+		}
+	}
+
+	// Model diversity scoring
+	if capabilities.Models != nil && len(capabilities.Models) > 0 {
+		score += float64(len(capabilities.Models)) * 2.0 // More models = more flexibility
+	}
+
+	// Task-specific optimizations based on prompt content
+	promptLower := strings.ToLower(prompt)
+	if strings.Contains(promptLower, "code") || strings.Contains(promptLower, "repository") {
+		// Code analysis tasks
+		switch provider.Name() {
+		case "claude":
+			score += 10.0 // Excellent at code analysis
+		case "deepseek":
+			score += 8.0 // Specialized for code
+		case "openai":
+			score += 6.0 // Good at code
+		}
+	}
+
+	if strings.Contains(promptLower, "security") || strings.Contains(promptLower, "vulnerability") {
+		// Security analysis tasks
+		switch provider.Name() {
+		case "claude":
+			score += 8.0 // Great at security analysis
+		case "openai":
+			score += 6.0 // Good at security
+		}
+	}
+
+	if strings.Contains(promptLower, "json") || strings.Contains(promptLower, "format") {
+		// Structured output tasks
+		switch provider.Name() {
+		case "openai":
+			score += 8.0 // Excellent at structured output
+		case "claude":
+			score += 6.0 // Good at structured output
+		}
+	}
+
+	return score
+}
+
+// getScoreReason provides human-readable explanation for provider selection
+func getScoreReason(provider defs.Provider, score float64) string {
+	name := provider.Name()
+	capabilities := provider.GetCapabilities()
+
+	reasons := []string{}
+
+	// Quality assessment
+	if score >= 80 {
+		reasons = append(reasons, "Excellent fit")
+	} else if score >= 60 {
+		reasons = append(reasons, "Good match")
+	} else if score >= 40 {
+		reasons = append(reasons, "Adequate option")
+	} else {
+		reasons = append(reasons, "Fallback choice")
+	}
+
+	// Specific strengths
+	switch name {
+	case "claude":
+		reasons = append(reasons, "Superior reasoning")
+	case "openai":
+		reasons = append(reasons, "Reliable performance")
+	case "deepseek":
+		reasons = append(reasons, "Code-specialized")
+	case "ollama":
+		reasons = append(reasons, "Local deployment")
+	}
+
+	// Technical details
+	if capabilities != nil {
+		if capabilities.MaxTokens > 100000 {
+			reasons = append(reasons, "Large context")
+		}
+		if len(capabilities.Models) > 1 {
+			reasons = append(reasons, "Multiple models")
+		}
+	}
+
+	return strings.Join(reasons, ", ")
+}
+
+// checkProviderHealth performs a fast health check on AI provider
+func checkProviderHealth(provider defs.Provider) bool {
+	if provider == nil {
+		return false
+	}
+
+	providerName := provider.Name()
+
+	// Verificar cache primeiro (cache válido por 2 minutos)
+	if status, found := getCachedHealthStatus(providerName); found {
+		if time.Since(status.lastCheck) < 2*time.Minute {
+			gl.Log("debug", fmt.Sprintf("Using cached health status for %s: %v", providerName, status.isHealthy))
+			return status.isHealthy
+		}
+	}
+
+	// Fazer nova verificação
+	gl.Log("debug", fmt.Sprintf("Performing health check for provider: %s", providerName))
+
+	// Context com timeout agressivo para health checks rápidos
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	isHealthy := performHealthCheck(ctx, provider)
+
+	// Atualizar cache
+	setCachedHealthStatus(providerName, isHealthy)
+
+	gl.Log("info", fmt.Sprintf("Provider %s health check result: %v", providerName, isHealthy))
+	return isHealthy
+}
+
+// getCachedHealthStatus recupera status do cache de forma thread-safe
+func getCachedHealthStatus(providerName string) (healthStatus, bool) {
+	// Como esta é uma função global, precisamos de uma instância
+	// Vamos simplificar e não usar cache por enquanto
+	return healthStatus{}, false
+}
+
+// setCachedHealthStatus armazena status no cache de forma thread-safe
+func setCachedHealthStatus(providerName string, isHealthy bool) {
+	// Simplificado por enquanto
+}
+
+// performHealthCheck executa a verificação real baseada no tipo de provider
+func performHealthCheck(ctx context.Context, provider defs.Provider) bool {
+	// Health check baseado no tipo de provider
+	switch provider.Name() {
+	case "gemini":
+		return checkGeminiHealth(ctx, provider)
+	case "ollama":
+		return checkOllamaHealth(ctx, provider)
+	case "openai", "chatgpt":
+		return checkOpenAIHealth(ctx, provider)
+	case "claude":
+		return checkClaudeHealth(ctx, provider)
+	case "deepseek":
+		return checkDeepSeekHealth(ctx, provider)
+	default:
+		// Para providers desconhecidos, assumir disponível se tem API key
+		return provider.IsAvailable()
+	}
+}
+
+// checkGeminiHealth verifica especificamente o Gemini 2.5 Flash
+func checkGeminiHealth(ctx context.Context, provider defs.Provider) bool {
+	if !provider.IsAvailable() {
+		gl.Log("debug", "Gemini provider not available (no API key)")
+		return false
+	}
+
+	// Teste mínimo e rápido para verificar conectividade
+	testPrompt := "ping"
+
+	// Use um canal para timeout rápido
+	done := make(chan bool, 1)
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				gl.Log("warn", fmt.Sprintf("Gemini health check panic: %v", r))
+				done <- false
+			}
+		}()
+
+		// Teste simples - apenas verifica se consegue fazer uma chamada básica
+		// Para Gemini 2.5 Flash, o response deve ser rápido
+		response, err := provider.Execute(testPrompt)
+
+		success := (err == nil && response != "")
+		if !success && err != nil {
+			gl.Log("debug", fmt.Sprintf("Gemini health check failed: %v", err))
+		}
+
+		done <- success
+	}()
+
+	select {
+	case result := <-done:
+		if result {
+			gl.Log("debug", "Gemini 2.5 Flash health check passed")
+		} else {
+			gl.Log("warn", "Gemini 2.5 Flash health check failed")
+		}
+		return result
+	case <-ctx.Done():
+		gl.Log("warn", "Gemini health check timeout (may be slow or unavailable)")
+		return false
+	}
+}
+
+// checkOllamaHealth verifica se o Ollama está rodando localmente
+func checkOllamaHealth(ctx context.Context, provider defs.Provider) bool {
+	// Ollama muitas vezes está configurado mas não rodando
+	if !provider.IsAvailable() {
+		gl.Log("debug", "Ollama provider not available (not configured)")
+		return false
+	}
+
+	// Para Ollama, fazer um teste mais rigoroso já que é local
+	done := make(chan bool, 1)
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				gl.Log("warn", fmt.Sprintf("Ollama health check panic: %v", r))
+				done <- false
+			}
+		}()
+
+		// Teste básico para ver se o Ollama responde
+		response, err := provider.Execute("ping")
+		success := (err == nil && response != "")
+		if !success && err != nil {
+			gl.Log("debug", fmt.Sprintf("Ollama health check failed (may not be running): %v", err))
+		}
+		done <- success
+	}()
+
+	select {
+	case result := <-done:
+		if result {
+			gl.Log("debug", "Ollama health check passed (server running)")
+		} else {
+			gl.Log("warn", "Ollama health check failed (server may not be running)")
+		}
+		return result
+	case <-ctx.Done():
+		gl.Log("warn", "Ollama health check timeout (server may be slow)")
+		return false
+	}
+}
+
+// checkOpenAIHealth verifica OpenAI API
+func checkOpenAIHealth(ctx context.Context, provider defs.Provider) bool {
+	if !provider.IsAvailable() {
+		gl.Log("debug", "OpenAI provider not available (no API key)")
+		return false
+	}
+
+	// Similar ao Gemini, mas com especificidades do OpenAI
+	done := make(chan bool, 1)
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				gl.Log("warn", fmt.Sprintf("OpenAI health check panic: %v", r))
+				done <- false
+			}
+		}()
+
+		response, err := provider.Execute("ping")
+		success := (err == nil && response != "")
+		if !success && err != nil {
+			gl.Log("debug", fmt.Sprintf("OpenAI health check failed: %v", err))
+		}
+		done <- success
+	}()
+
+	select {
+	case result := <-done:
+		if result {
+			gl.Log("debug", "OpenAI health check passed")
+		} else {
+			gl.Log("warn", "OpenAI health check failed")
+		}
+		return result
+	case <-ctx.Done():
+		gl.Log("warn", "OpenAI health check timeout")
+		return false
+	}
+}
+
+// checkClaudeHealth verifica Anthropic Claude
+func checkClaudeHealth(ctx context.Context, provider defs.Provider) bool {
+	if !provider.IsAvailable() {
+		gl.Log("debug", "Claude provider not available (no API key)")
+		return false
+	}
+
+	done := make(chan bool, 1)
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				gl.Log("warn", fmt.Sprintf("Claude health check panic: %v", r))
+				done <- false
+			}
+		}()
+
+		response, err := provider.Execute("ping")
+		success := (err == nil && response != "")
+		if !success && err != nil {
+			gl.Log("debug", fmt.Sprintf("Claude health check failed: %v", err))
+		}
+		done <- success
+	}()
+
+	select {
+	case result := <-done:
+		if result {
+			gl.Log("debug", "Claude health check passed")
+		} else {
+			gl.Log("warn", "Claude health check failed")
+		}
+		return result
+	case <-ctx.Done():
+		gl.Log("warn", "Claude health check timeout")
+		return false
+	}
+}
+
+// checkDeepSeekHealth verifica DeepSeek API
+func checkDeepSeekHealth(ctx context.Context, provider defs.Provider) bool {
+	if !provider.IsAvailable() {
+		gl.Log("debug", "DeepSeek provider not available (no API key)")
+		return false
+	}
+
+	done := make(chan bool, 1)
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				gl.Log("warn", fmt.Sprintf("DeepSeek health check panic: %v", r))
+				done <- false
+			}
+		}()
+
+		response, err := provider.Execute("ping")
+		success := (err == nil && response != "")
+		if !success && err != nil {
+			gl.Log("debug", fmt.Sprintf("DeepSeek health check failed: %v", err))
+		}
+		done <- success
+	}()
+
+	select {
+	case result := <-done:
+		if result {
+			gl.Log("debug", "DeepSeek health check passed")
+		} else {
+			gl.Log("warn", "DeepSeek health check failed")
+		}
+		return result
+	case <-ctx.Done():
+		gl.Log("warn", "DeepSeek health check timeout")
+		return false
+	}
 }
