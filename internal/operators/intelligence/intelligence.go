@@ -302,6 +302,12 @@ func (o *IntelligenceOperator) GenerateSmartRecommendations(ctx context.Context,
 
 // analyzeRepositoryWithAI uses Grompt to analyze repository
 func (o *IntelligenceOperator) analyzeRepositoryWithAI(ctx context.Context, repo *github.Repository) (float64, string, error) {
+	// 🛡️ CRITICAL: Validate repository input
+	if repo == nil {
+		gl.Log("error", "INTELLIGENCE: Repository is nil, cannot analyze")
+		return 0.0, "❌ AI analysis failed - Repository data unavailable", fmt.Errorf("repository is nil")
+	}
+
 	defer func(c context.Context) {
 		if err := recover(); err != nil {
 			gl.Log("error", fmt.Sprintf("INTELLIGENCE: AI analysis failed: %v", err))
