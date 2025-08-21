@@ -1,4 +1,4 @@
-package defs
+package gitz
 
 import "github.com/rafa-mori/ghbex/internal/interfaces"
 
@@ -23,34 +23,11 @@ func NewRunsRule(maxAgeDays, keepSuccessLast int, onlyWorkflows []string) interf
 	return NewRunsRuleType(maxAgeDays, keepSuccessLast, onlyWorkflows)
 }
 
-func (r *RunsRule) GetMaxAgeDays() int {
-	return r.MaxAgeDays
-}
-
-func (r *RunsRule) SetMaxAgeDays(days int) {
-	r.MaxAgeDays = days
-}
-
-func (r *RunsRule) GetKeepSuccessLast() int {
-	return r.KeepSuccessLast
-}
-
-func (r *RunsRule) SetKeepSuccessLast(days int) {
-	r.KeepSuccessLast = days
-}
-
-func (r *RunsRule) GetOnlyWorkflows() []string {
-	return r.OnlyWorkflows
-}
-
-func (r *RunsRule) SetOnlyWorkflows(workflows []string) {
-	r.OnlyWorkflows = workflows
-}
-
-func (r *RunsRule) GetRuleName() string {
-	return "runs"
-}
-
-func (r *RunsRule) SetRuleName(name string) {
-	// No-op for runs rule
-}
+func (r *RunsRule) GetMaxAgeDays() int                  { return r.MaxAgeDays }
+func (r *RunsRule) SetMaxAgeDays(days int)              { r.MaxAgeDays = days }
+func (r *RunsRule) GetKeepSuccessLast() int             { return r.KeepSuccessLast }
+func (r *RunsRule) SetKeepSuccessLast(days int)         { r.KeepSuccessLast = days }
+func (r *RunsRule) GetOnlyWorkflows() []string          { return r.OnlyWorkflows }
+func (r *RunsRule) SetOnlyWorkflows(workflows []string) { r.OnlyWorkflows = workflows }
+func (r *RunsRule) GetRuleName() string                 { return "runs" }
+func (r *RunsRule) SetRuleName(name string)             { /* // No-op for runs rule */ }

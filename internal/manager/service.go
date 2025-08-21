@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/go-github/v61/github"
 	"github.com/rafa-mori/ghbex/internal/defs"
+	"github.com/rafa-mori/ghbex/internal/defs/gitz"
 	"github.com/rafa-mori/ghbex/internal/interfaces"
 	"github.com/rafa-mori/ghbex/internal/notifiers"
 	artifacts "github.com/rafa-mori/ghbex/internal/operators/artifacts"
@@ -29,8 +30,8 @@ func New(cli *github.Client, cfg interfaces.IMainConfig, ntf ...*notifiers.Disco
 	return &Service{cli: cli, cfg: cfg, notifiers: ntf}
 }
 
-func (s *Service) SanitizeRepo(ctx context.Context, owner, repo string, rules interfaces.IRules, dryRun bool) (*defs.Report, error) {
-	rpt := &defs.Report{Owner: owner, Repo: repo, When: time.Now(), DryRun: dryRun}
+func (s *Service) SanitizeRepo(ctx context.Context, owner, repo string, rules interfaces.IRules, dryRun bool) (*gitz.Report, error) {
+	rpt := &gitz.Report{Owner: owner, Repo: repo, When: time.Now(), DryRun: dryRun}
 
 	d1, k1, ids1, err := workflows.CleanRuns(ctx, s.cli, owner, repo, rules.GetRunsRule(), dryRun)
 	if err != nil {

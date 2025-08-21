@@ -1,4 +1,4 @@
-package defs
+package gitz
 
 import "github.com/rafa-mori/ghbex/internal/interfaces"
 
@@ -24,26 +24,6 @@ func NewRepoCfg(owner, name string, rules interfaces.IRules) interfaces.IRepoCfg
 	return NewRepoCfgType(owner, name, rules)
 }
 
-func (r *RepoCfg) GetOwner() string {
-	return r.Owner
-}
-
-func (r *RepoCfg) SetOwner(owner string) {
-	r.Owner = owner
-}
-
-func (r *RepoCfg) GetName() string {
-	return r.Name
-}
-
-func (r *RepoCfg) SetName(name string) {
-	r.Name = name
-}
-
-func (r *RepoCfg) GetRules() interfaces.IRules {
-	return r.Rules
-}
-
 func (r *RepoCfg) SetRules(rules interfaces.IRules) {
 	if rules == nil {
 		r.Rules = nil
@@ -54,16 +34,20 @@ func (r *RepoCfg) SetRules(rules interfaces.IRules) {
 	}
 	r.Rules = rs
 }
-
 func (r *RepoCfg) GetMonitoring() interfaces.IMonitoringRule {
 	if r.Rules != nil {
 		return r.GetMonitoringRule()
 	}
 	return nil
 }
-
 func (r *RepoCfg) SetMonitoring(monitoring interfaces.IMonitoringRule) {
 	if r.Rules != nil {
 		r.SetMonitoringRule(monitoring)
 	}
 }
+
+func (r *RepoCfg) GetOwner() string            { return r.Owner }
+func (r *RepoCfg) SetOwner(owner string)       { r.Owner = owner }
+func (r *RepoCfg) GetName() string             { return r.Name }
+func (r *RepoCfg) SetName(name string)         { r.Name = name }
+func (r *RepoCfg) GetRules() interfaces.IRules { return r.Rules }

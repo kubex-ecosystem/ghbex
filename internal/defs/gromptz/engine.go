@@ -1,18 +1,14 @@
-package defs
+// Package grompt provides a set of types and functions for working with the Grompt library.
+package gromptz
 
 import (
 	"github.com/rafa-mori/grompt"
 	gromptConfig "github.com/rafa-mori/grompt/factory/config"
-	gromptProviders "github.com/rafa-mori/grompt/factory/providers"
 )
 
 type IGrompt = grompt.Grompt
-
 type Grompt = grompt.PromptEngine
-type APIConfig = grompt.APIConfig
-type Capabilities = gromptProviders.Capabilities
-type Provider = gromptProviders.Provider
-type GromptConfig = grompt.Config
+
 type PromptEngine = grompt.PromptEngine
 
 type GromptResult struct {
@@ -41,25 +37,4 @@ func NewPromptEngine(cfg GromptConfig) PromptEngine { return grompt.NewPromptEng
 func NewAPIConfig(configFilePath, provider string) APIConfig {
 	gmptCfg := grompt.DefaultConfig(configFilePath)
 	return gmptCfg.GetAPIConfig(provider)
-}
-
-func NewProviders(claudeKey string, openaiKey string, deepseekKey string, ollamaEndpoint string, geminiKey string, chatgptKey string, cfg GromptConfig) []Provider {
-	providers := gromptProviders.Initialize(
-		claudeKey,
-		openaiKey,
-		deepseekKey,
-		ollamaEndpoint,
-	)
-	providers = append(providers, gromptProviders.NewProvider("gemini", geminiKey, "v1beta", cfg))
-	providers = append(providers, gromptProviders.NewProvider("chatgpt", chatgptKey, "v1", cfg))
-
-	return providers
-}
-func NewProvider(
-	name string,
-	apiKey string,
-	version string,
-	cfg GromptConfig,
-) Provider {
-	return gromptProviders.NewProvider(name, apiKey, version, cfg)
 }

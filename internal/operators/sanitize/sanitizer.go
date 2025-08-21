@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/google/go-github/v61/github"
-	"github.com/rafa-mori/ghbex/internal/defs"
+	"github.com/rafa-mori/ghbex/internal/defs/gitz"
 )
 
 // IntelligentSanitizer provides AI-powered repository cleanup and optimization
@@ -352,7 +352,7 @@ func (s *IntelligentSanitizer) calculateHealthImprovement(report *SanitizationRe
 }
 
 // ToMarkdown generates enhanced markdown report with intelligent insights
-func ToMarkdown(r *defs.Report) string {
+func ToMarkdown(r *gitz.Report) string {
 	return fmt.Sprintf(`# 🧹 Intelligent Repository Sanitization: %s/%s
 
 ## 📊 Executive Summary

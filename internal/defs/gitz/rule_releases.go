@@ -1,4 +1,4 @@
-package defs
+package gitz
 
 import "github.com/rafa-mori/ghbex/internal/interfaces"
 
@@ -16,18 +16,7 @@ func NewReleasesRule(deleteDrafts bool) interfaces.IReleasesRule {
 	return NewReleasesRuleType(deleteDrafts)
 }
 
-func (r *ReleasesRule) GetDeleteDrafts() bool {
-	return r.DeleteDrafts
-}
-
-func (r *ReleasesRule) SetDeleteDrafts(deleteDrafts bool) {
-	r.DeleteDrafts = deleteDrafts
-}
-
-func (r *ReleasesRule) GetRuleName() string {
-	return "releases"
-}
-
-func (r *ReleasesRule) SetRuleName(name string) {
-	// No-op for releases rule
-}
+func (r *ReleasesRule) GetDeleteDrafts() bool             { return r.DeleteDrafts }
+func (r *ReleasesRule) SetDeleteDrafts(deleteDrafts bool) { r.DeleteDrafts = deleteDrafts }
+func (r *ReleasesRule) GetRuleName() string               { return "releases" }
+func (r *ReleasesRule) SetRuleName(name string)           { /* // No-op for releases rule */ }

@@ -1,4 +1,4 @@
-package defs
+package gitz
 
 import "github.com/rafa-mori/ghbex/internal/interfaces"
 
@@ -20,34 +20,11 @@ func NewSecurityRule(rotateSSHKeys, removeOldKeys bool, keyPattern string) inter
 	return NewSecurityRuleType(rotateSSHKeys, removeOldKeys, keyPattern)
 }
 
-func (r *SecurityRule) GetRotateSSHKeys() bool {
-	return r.RotateSSHKeys
-}
-
-func (r *SecurityRule) SetRotateSSHKeys(rotate bool) {
-	r.RotateSSHKeys = rotate
-}
-
-func (r *SecurityRule) GetRemoveOldKeys() bool {
-	return r.RemoveOldKeys
-}
-
-func (r *SecurityRule) SetRemoveOldKeys(remove bool) {
-	r.RemoveOldKeys = remove
-}
-
-func (r *SecurityRule) GetKeyPattern() string {
-	return r.KeyPattern
-}
-
-func (r *SecurityRule) SetKeyPattern(pattern string) {
-	r.KeyPattern = pattern
-}
-
-func (r *SecurityRule) GetRuleName() string {
-	return "security"
-}
-
-func (r *SecurityRule) SetRuleName(name string) {
-	// No-op for security rule
-}
+func (r *SecurityRule) GetRotateSSHKeys() bool       { return r.RotateSSHKeys }
+func (r *SecurityRule) SetRotateSSHKeys(rotate bool) { r.RotateSSHKeys = rotate }
+func (r *SecurityRule) GetRemoveOldKeys() bool       { return r.RemoveOldKeys }
+func (r *SecurityRule) SetRemoveOldKeys(remove bool) { r.RemoveOldKeys = remove }
+func (r *SecurityRule) GetKeyPattern() string        { return r.KeyPattern }
+func (r *SecurityRule) SetKeyPattern(pattern string) { r.KeyPattern = pattern }
+func (r *SecurityRule) GetRuleName() string          { return "security" }
+func (r *SecurityRule) SetRuleName(name string)      { /* // No-op for security rule */ }

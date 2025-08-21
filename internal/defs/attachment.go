@@ -17,11 +17,5 @@ func NewAttachmentType(name string, body []byte) *Attachment {
 func NewAttachment(name string, body []byte) interfaces.IAttachment {
 	return NewAttachmentType(name, body)
 }
-
-func (a *Attachment) GetName() string {
-	return a.Name
-}
-
-func (a *Attachment) GetBody() []byte {
-	return a.Body
-}
+func (a *Attachment) GetName() string { return a.Name }
+func (a *Attachment) GetBody() []byte { return a.Body }

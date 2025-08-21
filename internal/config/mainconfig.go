@@ -8,8 +8,9 @@ import (
 	"strings"
 
 	"github.com/rafa-mori/ghbex/internal/defs"
+	"github.com/rafa-mori/ghbex/internal/defs/gitz"
+	"github.com/rafa-mori/ghbex/internal/defs/gromptz"
 	"github.com/rafa-mori/ghbex/internal/interfaces"
-	"github.com/rafa-mori/grompt"
 
 	"gopkg.in/yaml.v3"
 
@@ -21,9 +22,9 @@ type MainConfig struct {
 	ConfigFilePath  string `yaml:"-" json:"-"`
 	*defs.Runtime   `yaml:"runtime" json:"runtime"`
 	*defs.Server    `yaml:"server" json:"server"`
-	*defs.GitHub    `yaml:"github" json:"github"`
+	*gitz.GitHub    `yaml:"github" json:"github"`
 	*defs.Notifiers `mapstructure:",squash"`
-	Grompt          defs.Grompt `yaml:"-" json:"-"`
+	Grompt          gromptz.Grompt `yaml:"-" json:"-"`
 }
 
 func NewMainConfigObj() (interfaces.IMainConfig, error) {
@@ -95,7 +96,7 @@ func NewMainConfigType(
 	deepSeekKey = GetEnvOrDefault("DEEPSEEK_API_KEY", "")
 	geminiKey = GetEnvOrDefault("GEMINI_API_KEY", "")
 
-	gromptEngineCfg := defs.NewGromptConfig(
+	gromptEngineCfg := gromptz.NewGromptConfig(
 		port,
 		openAIKey,
 		deepSeekKey,
@@ -112,8 +113,8 @@ func NewMainConfigType(
 		ConfigFilePath: configFilePath,
 		Runtime:        defs.NewRuntimeType(debug, disableDryRun, reportDir, background),
 		Server:         defs.NewServerType(bindAddr, port),
-		GitHub: defs.NewGitHubType(
-			defs.NewGitHubAuthType(
+		GitHub: gitz.NewGitHubType(
+			gitz.NewGitHubAuthType(
 				"pat",
 				GetEnvOrDefault("GITHUB_PAT_TOKEN", ""),
 				GetEnvOrDefault[int64]("GITHUB_APP_ID", 0),
@@ -129,7 +130,7 @@ func NewMainConfigType(
 			defs.NewNotifierType("discord", GetEnvOrDefault("DISCORD_WEBHOOK_URL", "")),
 			defs.NewNotifierType("email", GetEnvOrDefault("EMAIL_SMTP_SERVER", "")),
 		),
-		Grompt: defs.NewPromptEngine(gromptEngineCfg),
+		Grompt: gromptz.NewPromptEngine(gromptEngineCfg),
 	}
 
 	// 🛡️ CRITICAL SECURITY: NEVER auto-discover all repositories!
@@ -158,7 +159,7 @@ func NewMainConfigType(
 	// Process only explicitly configured repositories
 	if len(explicitRepos) > 0 {
 		gl.Log("info", "✅ Processing explicitly configured repositories:")
-		repos := make([]*defs.RepoCfg, 0, len(explicitRepos))
+		repos := make([]*gitz.RepoCfg, 0, len(explicitRepos))
 		for _, repoSpec := range explicitRepos {
 			// Clean and validate repo specification
 			repoSpec = strings.TrimSpace(repoSpec)
@@ -181,27 +182,27 @@ func NewMainConfigType(
 			}
 
 			gl.Log("info", "   📦 %s/%s", repoOwner, repoName)
-			repos = append(repos, defs.NewRepoCfgType(
+			repos = append(repos, gitz.NewRepoCfgType(
 				repoOwner,
 				repoName,
-				defs.NewRules(
-					defs.NewRunsRuleType(
+				gitz.NewRules(
+					gitz.NewRunsRuleType(
 						GetEnvOrDefault("GITHUB_REPO_RUNS_MAX_AGE_DAYS", 30),
 						GetEnvOrDefault("GITHUB_REPO_RUNS_MAX_PARALLEL", 5),
 						[]string{"completed", "failure", "cancelled", "timed_out", "action_required"},
 					),
-					defs.NewArtifactsRuleType(
+					gitz.NewArtifactsRuleType(
 						GetEnvOrDefault("GITHUB_REPO_ARTIFACTS_MAX_AGE_DAYS", 30),
 					),
-					defs.NewReleasesRuleType(
+					gitz.NewReleasesRuleType(
 						GetEnvOrDefault("GITHUB_REPO_RELEASES_DELETE_DRAFTS", false),
 					),
-					defs.NewSecurityRuleType(
+					gitz.NewSecurityRuleType(
 						GetEnvOrDefault("GITHUB_REPO_ROTATE_SSH_KEYS", false),
 						GetEnvOrDefault("GITHUB_REPO_REMOVE_OLD_KEYS", false),
 						GetEnvOrDefault("GITHUB_REPO_KEY_PATTERN", ""),
 					),
-					defs.NewMonitoringRuleType(
+					gitz.NewMonitoringRuleType(
 						GetEnvOrDefault("GITHUB_REPO_CHECK_INACTIVITY", false),
 						GetEnvOrDefault("GITHUB_REPO_INACTIVE_DAYS_THRESHOLD", 30),
 						GetEnvOrDefault("GITHUB_REPO_MONITOR_PRS", true),
@@ -248,8 +249,8 @@ func (c *MainConfig) GetGitHub() interfaces.IGitHub {
 		return nil
 	}
 	if c.GitHub == nil {
-		c.GitHub = defs.NewGitHubType(
-			defs.NewGitHubAuthType(
+		c.GitHub = gitz.NewGitHubType(
+			gitz.NewGitHubAuthType(
 				"pat",
 				GetEnvOrDefault("GITHUB_PAT_TOKEN", ""),
 				GetEnvOrDefault[int64]("GITHUB_APP_ID", 0),
@@ -287,13 +288,13 @@ func (c *MainConfig) GetConfigFilePath() string {
 	return c.ConfigFilePath
 }
 
-func (c *MainConfig) GetGrompt() grompt.PromptEngine {
+func (c *MainConfig) GetGrompt() gromptz.PromptEngine {
 	if c == nil {
 		return nil
 	}
 	if c.Grompt == nil {
-		c.Grompt = defs.NewGromptEngine(
-			defs.NewGromptConfig(
+		c.Grompt = gromptz.NewGromptEngine(
+			gromptz.NewGromptConfig(
 				c.Port,
 				GetEnvOrDefault("OPENAI_API_KEY", ""),
 				GetEnvOrDefault("DEEPSEEK_API_KEY", ""),
@@ -306,7 +307,7 @@ func (c *MainConfig) GetGrompt() grompt.PromptEngine {
 	return c.Grompt
 }
 
-func (c *MainConfig) SetGrompt(grompt grompt.PromptEngine) {
+func (c *MainConfig) SetGrompt(grompt gromptz.PromptEngine) {
 	if c == nil {
 		return
 	}

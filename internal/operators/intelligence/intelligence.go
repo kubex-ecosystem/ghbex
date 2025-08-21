@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/go-github/v61/github"
 
-	"github.com/rafa-mori/ghbex/internal/defs"
+	"github.com/rafa-mori/ghbex/internal/defs/gromptz"
 	"github.com/rafa-mori/ghbex/internal/interfaces"
 	gl "github.com/rafa-mori/ghbex/internal/module/logger"
 
@@ -37,7 +37,7 @@ type LLMMetaResponse struct {
 // IntelligenceOperator provides AI-powered analysis using Grompt engine
 type IntelligenceOperator struct {
 	client       *github.Client
-	promptEngine defs.PromptEngine
+	promptEngine gromptz.PromptEngine
 	mainConfig   interfaces.IMainConfig
 
 	// Health check cache para evitar verificações repetitivas
@@ -156,7 +156,7 @@ func NewIntelligenceOperator(cfg interfaces.IMainConfig, client *github.Client) 
 	claudeKey = configLib.GetEnvOrDefault("CLAUDE_API_KEY", "")
 	geminiKey = configLib.GetEnvOrDefault("GEMINI_API_KEY", "")
 
-	gromptEngineCfg := defs.NewGromptConfig(
+	gromptEngineCfg := gromptz.NewGromptConfig(
 		port,
 		openAIKey,
 		deepSeekKey,
@@ -165,7 +165,7 @@ func NewIntelligenceOperator(cfg interfaces.IMainConfig, client *github.Client) 
 		geminiKey,
 	)
 
-	engine := defs.NewGromptEngine(gromptEngineCfg)
+	engine := gromptz.NewGromptEngine(gromptEngineCfg)
 	llmList := map[string]string{
 		"claude":   "v1",
 		"openai":   "v1",
@@ -174,9 +174,9 @@ func NewIntelligenceOperator(cfg interfaces.IMainConfig, client *github.Client) 
 		"gemini":   "v1beta",
 		"chatgpt":  "v1",
 	}
-	llmMapList := make(map[string]defs.Provider)
+	llmMapList := make(map[string]gromptz.Provider)
 	for provider, version := range llmList {
-		llmMapList[provider] = defs.NewProvider(
+		llmMapList[provider] = gromptz.NewProvider(
 			provider,
 			configLib.GetEnvOrDefault(
 				strings.ToUpper(provider)+"_API_KEY",
@@ -374,7 +374,7 @@ Format your response as JSON:
 	}
 
 	// Use the first available provider for simplicity
-	provider := o.getBetterAvailableProvider(llmProviders, &defs.Capabilities{}, prompt)
+	provider := o.getBetterAvailableProvider(llmProviders, &gromptz.Capabilities{}, prompt)
 	if provider == nil {
 		return 0.0, "❌ AI analysis unavailable - No suitable provider found", fmt.Errorf("no suitable provider found")
 	}
@@ -654,16 +654,16 @@ func (o *IntelligenceOperator) identifyOpportunity(repo *github.Repository) stri
 
 // ProviderScore represents the scoring for a provider
 type ProviderScore struct {
-	Provider defs.Provider
+	Provider gromptz.Provider
 	Score    float64
 	Reason   string
 }
 
 func (o *IntelligenceOperator) getBetterAvailableProvider(
-	providers []defs.Provider,
-	requiredCapabilities *defs.Capabilities,
+	providers []gromptz.Provider,
+	requiredCapabilities *gromptz.Capabilities,
 	prompt string,
-) defs.Provider {
+) gromptz.Provider {
 	if len(providers) == 0 {
 		gl.Log("error", "No providers available")
 		return nil
@@ -742,7 +742,7 @@ func (o *IntelligenceOperator) getBetterAvailableProvider(
 }
 
 // calculateProviderScore scores a provider based on multiple factors
-func (o *IntelligenceOperator) calculateProviderScore(provider defs.Provider, required *defs.Capabilities, prompt string) float64 {
+func (o *IntelligenceOperator) calculateProviderScore(provider gromptz.Provider, required *gromptz.Capabilities, prompt string) float64 {
 	score := 0.0
 	capabilities := provider.GetCapabilities()
 
@@ -840,7 +840,7 @@ func (o *IntelligenceOperator) calculateProviderScore(provider defs.Provider, re
 }
 
 // getScoreReason provides human-readable explanation for provider selection
-func getScoreReason(provider defs.Provider, score float64) string {
+func getScoreReason(provider gromptz.Provider, score float64) string {
 	name := provider.Name()
 	capabilities := provider.GetCapabilities()
 
@@ -883,7 +883,7 @@ func getScoreReason(provider defs.Provider, score float64) string {
 }
 
 // checkProviderHealth performs a fast health check on AI provider
-func (o *IntelligenceOperator) checkProviderHealth(provider defs.Provider) bool {
+func (o *IntelligenceOperator) checkProviderHealth(provider gromptz.Provider) bool {
 	if provider == nil {
 		return false
 	}
@@ -934,7 +934,7 @@ func setCachedHealthStatus(providerName string, isHealthy bool) {
 }
 
 // performHealthCheck executa a verificação real baseada no tipo de provider
-func performHealthCheck(ctx context.Context, provider defs.Provider) bool {
+func performHealthCheck(ctx context.Context, provider gromptz.Provider) bool {
 	// Health check baseado no tipo de provider
 	switch provider.Name() {
 	case "gemini":
@@ -954,7 +954,7 @@ func performHealthCheck(ctx context.Context, provider defs.Provider) bool {
 }
 
 // checkGeminiHealth verifica especificamente o Gemini 2.5 Flash
-func checkGeminiHealth(ctx context.Context, provider defs.Provider) bool {
+func checkGeminiHealth(ctx context.Context, provider gromptz.Provider) bool {
 	if !provider.IsAvailable() {
 		gl.Log("debug", "Gemini provider not available (no API key)")
 		return false
@@ -1000,7 +1000,7 @@ func checkGeminiHealth(ctx context.Context, provider defs.Provider) bool {
 }
 
 // checkOllamaHealth verifica se o Ollama está rodando localmente
-func checkOllamaHealth(ctx context.Context, provider defs.Provider) bool {
+func checkOllamaHealth(ctx context.Context, provider gromptz.Provider) bool {
 	// Ollama muitas vezes está configurado mas não rodando
 	if !provider.IsAvailable() {
 		gl.Log("debug", "Ollama provider not available (not configured)")
@@ -1041,7 +1041,7 @@ func checkOllamaHealth(ctx context.Context, provider defs.Provider) bool {
 }
 
 // checkOpenAIHealth verifica OpenAI API
-func checkOpenAIHealth(ctx context.Context, provider defs.Provider) bool {
+func checkOpenAIHealth(ctx context.Context, provider gromptz.Provider) bool {
 	if !provider.IsAvailable() {
 		gl.Log("debug", "OpenAI provider not available (no API key)")
 		return false
@@ -1080,7 +1080,7 @@ func checkOpenAIHealth(ctx context.Context, provider defs.Provider) bool {
 }
 
 // checkClaudeHealth verifica Anthropic Claude
-func checkClaudeHealth(ctx context.Context, provider defs.Provider) bool {
+func checkClaudeHealth(ctx context.Context, provider gromptz.Provider) bool {
 	if !provider.IsAvailable() {
 		gl.Log("debug", "Claude provider not available (no API key)")
 		return false
@@ -1118,7 +1118,7 @@ func checkClaudeHealth(ctx context.Context, provider defs.Provider) bool {
 }
 
 // checkDeepSeekHealth verifica DeepSeek API
-func checkDeepSeekHealth(ctx context.Context, provider defs.Provider) bool {
+func checkDeepSeekHealth(ctx context.Context, provider gromptz.Provider) bool {
 	if !provider.IsAvailable() {
 		gl.Log("debug", "DeepSeek provider not available (no API key)")
 		return false

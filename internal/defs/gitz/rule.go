@@ -1,3 +1,3 @@
-package defs
+package gitz
 
 type Rule struct{}

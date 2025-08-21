@@ -82,13 +82,8 @@ func NewNotifier(notifierType, webhook string) interfaces.INotifier {
 	return NewNotifierType(notifierType, webhook)
 }
 
-func (n *Notifier) GetType() string {
-	return n.Type
-}
-
-func (n *Notifier) GetWebhook() string {
-	return n.Webhook
-}
+func (n *Notifier) GetType() string    { return n.Type }
+func (n *Notifier) GetWebhook() string { return n.Webhook }
 
 func (n *Notifier) Send(ctx context.Context, title, text string, files ...interfaces.IAttachment) error {
 	// Implementation for sending the notification

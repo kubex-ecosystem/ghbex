@@ -14,14 +14,6 @@ func NewServerType(addr, port string) *Server {
 	}
 }
 
-func NewServer(addr, port string) interfaces.IServer {
-	return NewServerType(addr, port)
-}
-
-func (s *Server) GetAddr() string {
-	return s.Addr
-}
-
-func (s *Server) GetPort() string {
-	return s.Port
-}
+func NewServer(addr, port string) interfaces.IServer { return NewServerType(addr, port) }
+func (s *Server) GetAddr() string                    { return s.Addr }
+func (s *Server) GetPort() string                    { return s.Port }

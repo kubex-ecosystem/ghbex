@@ -1,14 +1,8 @@
-// Package defs contains type definitions used across the application.
-package defs
+package gitz
 
 import (
 	"time"
 )
-
-type Config struct {
-	Runtime `yaml:"runtime" json:"runtime"`
-	GitHub  `yaml:"github" json:"github"`
-}
 
 type Runs struct {
 	Deleted int     `yaml:"deleted" json:"deleted"`
@@ -41,20 +35,14 @@ type Monitoring struct {
 }
 
 type Report struct {
-	Owner  string    `yaml:"owner" json:"owner"`
-	Repo   string    `yaml:"repo" json:"repo"`
-	When   time.Time `yaml:"when" json:"when"`
-	DryRun bool      `yaml:"dry_run" json:"dry_run"`
-
-	Runs Runs `yaml:"runs" json:"runs"`
-
-	Artifacts Artifacts `yaml:"artifacts" json:"artifacts"`
-
-	Releases Releases `yaml:"releases" json:"releases"`
-
-	Security Security `yaml:"security" json:"security"`
-
+	Owner      string     `yaml:"owner" json:"owner"`
+	Repo       string     `yaml:"repo" json:"repo"`
+	When       time.Time  `yaml:"when" json:"when"`
+	DryRun     bool       `yaml:"dry_run" json:"dry_run"`
+	Runs       Runs       `yaml:"runs" json:"runs"`
+	Artifacts  Artifacts  `yaml:"artifacts" json:"artifacts"`
+	Releases   Releases   `yaml:"releases" json:"releases"`
+	Security   Security   `yaml:"security" json:"security"`
 	Monitoring Monitoring `yaml:"monitoring" json:"monitoring"`
-
-	Notes []string `yaml:"notes" json:"notes"`
+	Notes      []string   `yaml:"notes" json:"notes"`
 }

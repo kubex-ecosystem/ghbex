@@ -1,4 +1,4 @@
-package defs
+package gitz
 
 import "github.com/rafa-mori/ghbex/internal/interfaces"
 
@@ -58,33 +58,18 @@ func NewRules(
 	)
 }
 
-func (r *Rules) GetRuns() interfaces.IRule {
-	return r.RunsRule
-}
-
-func (r *Rules) GetRuleName() string {
-	return "rules"
-}
-
-func (r *Rules) SetRuleName(name string) {
-	// No-op for rules
-}
-
-func (r *Rules) GetArtifacts() interfaces.IRule {
-	return r.ArtifactsRule
-}
-
-func (r *Rules) GetReleases() interfaces.IRule {
-	return r.ReleasesRule
-}
-
-func (r *Rules) GetSecurity() interfaces.IRule {
-	return r.SecurityRule
-}
-
-func (r *Rules) GetMonitoring() interfaces.IRule {
-	return r.MonitoringRule
-}
+func (r *Rules) GetRuns() interfaces.IRule                     { return r.RunsRule }
+func (r *Rules) GetRuleName() string                           { return "rules" }
+func (r *Rules) SetRuleName(name string)                       { /* // No-op for rules */ }
+func (r *Rules) GetArtifacts() interfaces.IRule                { return r.ArtifactsRule }
+func (r *Rules) GetReleases() interfaces.IRule                 { return r.ReleasesRule }
+func (r *Rules) GetSecurity() interfaces.IRule                 { return r.SecurityRule }
+func (r *Rules) GetMonitoring() interfaces.IRule               { return r.MonitoringRule }
+func (r *Rules) GetSecurityRule() interfaces.ISecurityRule     { return r.SecurityRule }
+func (r *Rules) GetMonitoringRule() interfaces.IMonitoringRule { return r.MonitoringRule }
+func (r *Rules) GetReleasesRule() interfaces.IReleasesRule     { return r.ReleasesRule }
+func (r *Rules) GetArtifactsRule() interfaces.IArtifactsRule   { return r.ArtifactsRule }
+func (r *Rules) GetRunsRule() interfaces.IRunsRule             { return r.RunsRule }
 
 func (r *Rules) SetRuns(rule interfaces.IRunsRule) {
 	if rule == nil {
@@ -95,7 +80,6 @@ func (r *Rules) SetRuns(rule interfaces.IRunsRule) {
 		}
 	}
 }
-
 func (r *Rules) SetArtifacts(rule interfaces.IArtifactsRule) {
 	if rule == nil {
 		r.ArtifactsRule = nil
@@ -105,7 +89,6 @@ func (r *Rules) SetArtifacts(rule interfaces.IArtifactsRule) {
 		}
 	}
 }
-
 func (r *Rules) SetReleases(rule interfaces.IReleasesRule) {
 	if rule == nil {
 		r.ReleasesRule = nil
@@ -115,7 +98,6 @@ func (r *Rules) SetReleases(rule interfaces.IReleasesRule) {
 		}
 	}
 }
-
 func (r *Rules) SetSecurity(rule interfaces.ISecurityRule) {
 	if rule == nil {
 		r.SecurityRule = nil
@@ -125,7 +107,6 @@ func (r *Rules) SetSecurity(rule interfaces.ISecurityRule) {
 		}
 	}
 }
-
 func (r *Rules) SetMonitoring(rule interfaces.IMonitoringRule) {
 	if rule == nil {
 		r.MonitoringRule = nil
@@ -135,27 +116,6 @@ func (r *Rules) SetMonitoring(rule interfaces.IMonitoringRule) {
 		}
 	}
 }
-
-func (r *Rules) GetSecurityRule() interfaces.ISecurityRule {
-	return r.SecurityRule
-}
-
-func (r *Rules) GetMonitoringRule() interfaces.IMonitoringRule {
-	return r.MonitoringRule
-}
-
-func (r *Rules) GetReleasesRule() interfaces.IReleasesRule {
-	return r.ReleasesRule
-}
-
-func (r *Rules) GetArtifactsRule() interfaces.IArtifactsRule {
-	return r.ArtifactsRule
-}
-
-func (r *Rules) GetRunsRule() interfaces.IRunsRule {
-	return r.RunsRule
-}
-
 func (r *Rules) SetSecurityRule(rule interfaces.ISecurityRule) {
 	if rule == nil {
 		r.SecurityRule = nil
@@ -165,7 +125,6 @@ func (r *Rules) SetSecurityRule(rule interfaces.ISecurityRule) {
 		}
 	}
 }
-
 func (r *Rules) SetMonitoringRule(rule interfaces.IMonitoringRule) {
 	if rule == nil {
 		r.MonitoringRule = nil
@@ -175,7 +134,6 @@ func (r *Rules) SetMonitoringRule(rule interfaces.IMonitoringRule) {
 		}
 	}
 }
-
 func (r *Rules) SetReleasesRule(rule interfaces.IReleasesRule) {
 	if rule == nil {
 		r.ReleasesRule = nil
@@ -185,7 +143,6 @@ func (r *Rules) SetReleasesRule(rule interfaces.IReleasesRule) {
 		}
 	}
 }
-
 func (r *Rules) SetArtifactsRule(rule interfaces.IArtifactsRule) {
 	if rule == nil {
 		r.ArtifactsRule = nil
@@ -195,7 +152,6 @@ func (r *Rules) SetArtifactsRule(rule interfaces.IArtifactsRule) {
 		}
 	}
 }
-
 func (r *Rules) SetRunsRule(rule interfaces.IRunsRule) {
 	if rule == nil {
 		r.RunsRule = nil

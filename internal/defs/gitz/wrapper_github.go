@@ -1,4 +1,5 @@
-package defs
+// Package gitz provides a set of types and functions for working with GitHub.
+package gitz
 
 import "github.com/rafa-mori/ghbex/internal/interfaces"
 
