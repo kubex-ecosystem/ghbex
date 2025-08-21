@@ -333,7 +333,7 @@ Please provide:
 
 Format your response as JSON:
 {
-	"score": 85.5,
+	"score": %.2f,
 	"assessment": "Active Go project with good community engagement and recent updates"
 }
 `,
@@ -345,6 +345,7 @@ Format your response as JSON:
 		repo.GetOpenIssuesCount(),
 		repo.GetCreatedAt().Format("2006-01-02"),
 		repo.GetUpdatedAt().Format("2006-01-02"),
+		(float64(repo.GetStargazersCount())*float64(0.1) + float64(repo.GetForksCount())*float64(0.05) + float64(repo.GetOpenIssuesCount())*0.02),
 	)
 	if o.promptEngine == nil {
 		return 0.0, "⚠️  SIMULATED - AI analysis unavailable", fmt.Errorf("prompt engine not initialized")
