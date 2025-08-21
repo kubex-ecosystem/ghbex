@@ -974,25 +974,168 @@ func calculateAverageDuration(durations []time.Duration) time.Duration {
 }
 
 func generateOptimizationSuggestion(workflow string, avgTime time.Duration) string {
-	if avgTime > 30*time.Minute {
-		return "Consider adding dependency caching, parallelizing independent jobs, and optimizing Docker builds"
-	} else if avgTime > 15*time.Minute {
-		return "Add dependency caching and consider parallelizing test suites"
+	minutes := avgTime.Minutes()
+	workflowLower := strings.ToLower(workflow)
+
+	// Base suggestions for different time ranges
+	var suggestions []string
+
+	// Critical performance issues (>60 minutes)
+	if minutes > 60 {
+		suggestions = append(suggestions,
+			"🚨 Critical: Split into multiple parallel workflows",
+			"Implement matrix builds for parallel execution",
+			"Use self-hosted runners for better performance",
+			"Cache all dependencies and build artifacts",
+		)
+	} else if minutes > 30 {
+		// Major optimization needed (30-60 minutes)
+		suggestions = append(suggestions,
+			"📈 Major optimization needed:",
+			"Add comprehensive dependency caching",
+			"Parallelize independent jobs and test suites",
+			"Optimize Docker builds with multi-stage builds",
+			"Consider using faster runners or more CPU cores",
+		)
+	} else if minutes > 15 {
+		// Moderate optimization (15-30 minutes)
+		suggestions = append(suggestions,
+			"⚡ Moderate optimization opportunities:",
+			"Implement dependency caching (npm, pip, go mod, etc.)",
+			"Parallelize test execution where possible",
+			"Optimize container images and reduce layer size",
+		)
+	} else if minutes > 5 {
+		// Minor optimizations (5-15 minutes)
+		suggestions = append(suggestions,
+			"🔧 Fine-tuning opportunities:",
+			"Add selective caching for build artifacts",
+			"Parallelize test suites if not already done",
+			"Review and eliminate redundant build steps",
+		)
+	} else {
+		// Already optimized (<5 minutes)
+		return "✅ Workflow is well-optimized (under 5 minutes)"
 	}
-	return "Optimize build steps and consider parallelizing test execution"
+
+	// Workflow-specific suggestions
+	if strings.Contains(workflowLower, "test") {
+		suggestions = append(suggestions,
+			"Test-specific: Use test parallelization and smart test selection")
+	}
+
+	if strings.Contains(workflowLower, "build") {
+		suggestions = append(suggestions,
+			"Build-specific: Implement incremental builds and artifact caching")
+	}
+
+	if strings.Contains(workflowLower, "deploy") {
+		suggestions = append(suggestions,
+			"Deploy-specific: Use blue-green deployment and artifact reuse")
+	}
+
+	if strings.Contains(workflowLower, "ci") || strings.Contains(workflowLower, "integration") {
+		suggestions = append(suggestions,
+			"CI-specific: Cache dependencies and use conditional job execution")
+	}
+
+	return strings.Join(suggestions, "\n• ")
 }
 
 func generateFailureSolution(pattern string) string {
 	patternLower := strings.ToLower(pattern)
 
+	// Test failures - most common category
 	if strings.Contains(patternLower, "test") {
-		return "Review test stability, add retry logic for flaky tests, and improve test isolation"
-	} else if strings.Contains(patternLower, "build") {
-		return "Check dependency versions, verify build environment consistency, and add better error handling"
-	} else if strings.Contains(patternLower, "deploy") {
-		return "Implement deployment health checks, add rollback mechanisms, and verify environment configuration"
+		solutions := []string{
+			"🧪 Test Failure Solutions:",
+			"• Review and stabilize flaky tests with proper waits and assertions",
+			"• Implement retry logic for integration tests with external dependencies",
+			"• Improve test isolation and cleanup between test runs",
+			"• Add better test data management and fixtures",
+			"• Consider test parallelization issues and race conditions",
+			"• Use deterministic test ordering and seeding",
+		}
+
+		// Specific test type failures
+		if strings.Contains(patternLower, "unit") {
+			solutions = append(solutions, "• Focus on mocking external dependencies for unit tests")
+		}
+		if strings.Contains(patternLower, "integration") {
+			solutions = append(solutions, "• Verify test environment consistency and service availability")
+		}
+		if strings.Contains(patternLower, "e2e") || strings.Contains(patternLower, "end") {
+			solutions = append(solutions, "• Add browser/UI stability improvements and explicit waits")
+		}
+
+		return strings.Join(solutions, "\n")
 	}
-	return "Analyze failure logs, implement appropriate error handling, and add monitoring"
+
+	// Build failures
+	if strings.Contains(patternLower, "build") || strings.Contains(patternLower, "compile") {
+		solutions := []string{
+			"🔨 Build Failure Solutions:",
+			"• Lock dependency versions to prevent version conflicts",
+			"• Verify build environment consistency across all runners",
+			"• Add comprehensive error logging and build diagnostics",
+			"• Implement incremental builds to isolate problem areas",
+			"• Check for platform-specific build issues (OS, architecture)",
+			"• Validate build tool versions and configurations",
+		}
+
+		if strings.Contains(patternLower, "docker") {
+			solutions = append(solutions, "• Review Dockerfile syntax and base image availability")
+		}
+		if strings.Contains(patternLower, "node") || strings.Contains(patternLower, "npm") {
+			solutions = append(solutions, "• Clear npm cache and verify package-lock.json consistency")
+		}
+		if strings.Contains(patternLower, "maven") || strings.Contains(patternLower, "gradle") {
+			solutions = append(solutions, "• Check Java version compatibility and clear build cache")
+		}
+
+		return strings.Join(solutions, "\n")
+	}
+
+	// Deployment failures
+	if strings.Contains(patternLower, "deploy") || strings.Contains(patternLower, "release") {
+		solutions := []string{
+			"🚀 Deployment Failure Solutions:",
+			"• Implement comprehensive deployment health checks",
+			"• Add automated rollback mechanisms for failed deployments",
+			"• Verify environment configuration and secrets availability",
+			"• Check network connectivity and firewall rules",
+			"• Validate resource limits and capacity planning",
+			"• Implement blue-green or canary deployment strategies",
+			"• Add deployment monitoring and alerting",
+		}
+
+		if strings.Contains(patternLower, "kubernetes") || strings.Contains(patternLower, "k8s") {
+			solutions = append(solutions, "• Verify Kubernetes manifests and cluster permissions")
+		}
+		if strings.Contains(patternLower, "aws") || strings.Contains(patternLower, "azure") || strings.Contains(patternLower, "gcp") {
+			solutions = append(solutions, "• Check cloud provider service availability and quotas")
+		}
+
+		return strings.Join(solutions, "\n")
+	}
+
+	// Security scan failures
+	if strings.Contains(patternLower, "security") || strings.Contains(patternLower, "vulnerability") {
+		return "🔒 Security Failure Solutions:\n• Update vulnerable dependencies to patched versions\n• Review and whitelist false positives\n• Implement security baseline and compliance checks\n• Add security scanning earlier in the development cycle"
+	}
+
+	// Linting/code quality failures
+	if strings.Contains(patternLower, "lint") || strings.Contains(patternLower, "quality") {
+		return "📝 Code Quality Failure Solutions:\n• Fix linting violations or update linting rules\n• Implement pre-commit hooks for early detection\n• Standardize code formatting across the team\n• Add incremental linting for large codebases"
+	}
+
+	// Performance/timeout failures
+	if strings.Contains(patternLower, "timeout") || strings.Contains(patternLower, "performance") {
+		return "⏱️ Performance/Timeout Solutions:\n• Increase timeout values for slow operations\n• Optimize resource-intensive operations\n• Add performance monitoring and profiling\n• Consider parallel execution for time-consuming tasks"
+	}
+
+	// Generic failure pattern
+	return "🔍 Generic Failure Analysis:\n• Analyze detailed failure logs and error messages\n• Implement comprehensive error handling and recovery\n• Add monitoring and alerting for early detection\n• Review recent changes that might have introduced the issue\n• Ensure proper environment setup and dependencies"
 }
 
 func generateCacheOptimizations(workflows []*github.Workflow) []CacheOptimization {

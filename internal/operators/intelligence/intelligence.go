@@ -493,14 +493,80 @@ func (o *IntelligenceOperator) getHealthIcon(score float64) string {
 }
 
 func (o *IntelligenceOperator) generateMainTag(repo *github.Repository) string {
-	if repo.GetStargazersCount() > 100 {
-		return "Popular"
-	} else if repo.GetUpdatedAt().After(time.Now().AddDate(0, 0, -7)) {
-		return "Active"
-	} else if repo.GetLanguage() != "" {
-		return repo.GetLanguage()
+	// Multi-factor tag generation based on repository characteristics
+
+	stars := repo.GetStargazersCount()
+	forks := repo.GetForksCount()
+	issues := repo.GetOpenIssuesCount()
+	language := repo.GetLanguage()
+	daysSinceUpdate := int(time.Since(repo.GetUpdatedAt().Time).Hours() / 24)
+
+	// Viral/trending projects
+	if stars > 10000 {
+		return "🔥 Viral"
 	}
-	return "Project"
+
+	// Very popular projects
+	if stars > 1000 {
+		return "⭐ Popular"
+	}
+
+	// Active development
+	if daysSinceUpdate <= 1 {
+		return "🚀 Hot"
+	} else if daysSinceUpdate <= 7 {
+		return "💫 Active"
+	}
+
+	// High community engagement
+	if forks > stars/2 && stars > 50 {
+		return "🤝 Community"
+	}
+
+	// Maintenance mode indicators
+	if issues > 50 && daysSinceUpdate > 30 {
+		return "🔧 Maintenance"
+	}
+
+	// Early stage projects
+	if stars < 10 && daysSinceUpdate <= 7 {
+		return "🌱 Emerging"
+	}
+
+	// Stable/mature projects
+	if stars > 100 && daysSinceUpdate <= 30 {
+		return "✅ Stable"
+	}
+
+	// Language-specific tags for smaller projects
+	if language != "" && stars < 100 {
+		switch language {
+		case "Go":
+			return "🐹 Go"
+		case "JavaScript", "TypeScript":
+			return "⚡ JS/TS"
+		case "Python":
+			return "🐍 Python"
+		case "Rust":
+			return "🦀 Rust"
+		case "Java":
+			return "☕ Java"
+		case "C++":
+			return "⚡ C++"
+		default:
+			return language
+		}
+	}
+
+	// Archived or stale projects
+	if daysSinceUpdate > 365 {
+		return "📦 Archived"
+	} else if daysSinceUpdate > 90 {
+		return "😴 Stale"
+	}
+
+	// Default fallback
+	return "📁 Project"
 }
 
 func (o *IntelligenceOperator) calculateRiskLevel(repo *github.Repository, aiScore float64) string {
@@ -513,18 +579,69 @@ func (o *IntelligenceOperator) calculateRiskLevel(repo *github.Repository, aiSco
 }
 
 func (o *IntelligenceOperator) identifyOpportunity(repo *github.Repository) string {
-	opportunities := []string{
-		"Documentation enhancement",
-		"Performance optimization",
-		"Security improvements",
-		"Community engagement",
-		"Code quality boost",
-		"Test coverage expansion",
+	// Intelligent opportunity identification based on repository characteristics
+
+	// High-priority opportunities based on repo state
+	if repo.GetOpenIssuesCount() > 20 {
+		return "Issue management optimization"
 	}
 
-	// Simple deterministic selection based on repo characteristics
-	index := (repo.GetStargazersCount() + repo.GetForksCount()) % len(opportunities)
-	return opportunities[index]
+	if repo.GetDescription() == "" || len(repo.GetDescription()) < 50 {
+		return "Documentation enhancement"
+	}
+
+	// Language-specific opportunities
+	language := repo.GetLanguage()
+	switch language {
+	case "Go":
+		return "Performance optimization and testing"
+	case "JavaScript", "TypeScript":
+		return "Code quality and security scanning"
+	case "Python":
+		return "Dependency management and testing"
+	case "Java":
+		return "Performance monitoring and optimization"
+	case "C++", "C":
+		return "Memory safety and performance analysis"
+	case "Rust":
+		return "Cargo optimization and benchmarking"
+	default:
+		// Continue to activity-based analysis
+	}
+
+	// Activity-based opportunities
+	daysSinceUpdate := int(time.Since(repo.GetUpdatedAt().Time).Hours() / 24)
+	if daysSinceUpdate > 30 {
+		return "Project reactivation and maintenance"
+	}
+
+	// Community-based opportunities
+	if repo.GetStargazersCount() > 100 && repo.GetForksCount() < 10 {
+		return "Community engagement and contribution guidelines"
+	}
+
+	if repo.GetForksCount() > repo.GetStargazersCount()/2 {
+		return "Contributor onboarding and collaboration tools"
+	}
+
+	// Repository maturity based opportunities
+	if repo.GetStargazersCount() < 10 {
+		return "Visibility and marketing enhancement"
+	}
+
+	if repo.GetStargazersCount() > 1000 {
+		return "Scaling and infrastructure optimization"
+	}
+
+	// Default opportunity for active, well-maintained repos
+	return "Continuous improvement and innovation"
+}
+
+// ProviderScore represents the scoring for a provider
+type ProviderScore struct {
+	Provider defs.Provider
+	Score    float64
+	Reason   string
 }
 
 func getBetterAvailableProvider(
@@ -532,16 +649,204 @@ func getBetterAvailableProvider(
 	requiredCapabilities *defs.Capabilities,
 	prompt string,
 ) defs.Provider {
+	if len(providers) == 0 {
+		gl.Log("error", "No providers available")
+		return nil
+	}
+
+	// Score all available providers
+	var scores []ProviderScore
+	promptLength := len(prompt)
+
 	for _, provider := range providers {
-		if provider.IsAvailable() &&
-			len(prompt) <= provider.GetCapabilities().MaxTokens &&
-			(provider.GetCapabilities().SupportsBatch && requiredCapabilities.SupportsBatch) &&
-			(provider.GetCapabilities().SupportsStreaming && requiredCapabilities.SupportsStreaming) &&
-			(provider.GetCapabilities().Models != nil && len(provider.GetCapabilities().Models) > 0) {
-			gl.Log("info", fmt.Sprintf("Using provider %s for prompt: %s", provider.Name(), prompt))
-			return provider
+		if !provider.IsAvailable() {
+			gl.Log("debug", fmt.Sprintf("Provider %s is not available", provider.Name()))
+			continue
+		}
+
+		capabilities := provider.GetCapabilities()
+		if capabilities == nil {
+			gl.Log("debug", fmt.Sprintf("Provider %s has no capabilities", provider.Name()))
+			continue
+		}
+
+		// Check basic requirements
+		if promptLength > capabilities.MaxTokens {
+			gl.Log("debug", fmt.Sprintf("Provider %s: prompt too long (%d > %d)",
+				provider.Name(), promptLength, capabilities.MaxTokens))
+			continue
+		}
+
+		// Calculate provider score based on multiple factors
+		score := calculateProviderScore(provider, requiredCapabilities, prompt)
+
+		scores = append(scores, ProviderScore{
+			Provider: provider,
+			Score:    score,
+			Reason:   getScoreReason(provider, score),
+		})
+	}
+
+	if len(scores) == 0 {
+		gl.Log("warn", "No suitable providers found after scoring")
+		return nil
+	}
+
+	// Sort by score (highest first)
+	for i := 0; i < len(scores)-1; i++ {
+		for j := i + 1; j < len(scores); j++ {
+			if scores[i].Score < scores[j].Score {
+				scores[i], scores[j] = scores[j], scores[i]
+			}
 		}
 	}
-	gl.Log("warn", fmt.Sprintf("No suitable provider found for prompt: %s", prompt))
-	return nil
+
+	// Select the best provider
+	bestProvider := scores[0]
+
+	gl.Log("info", fmt.Sprintf("Selected provider %s (score: %.2f) - %s",
+		bestProvider.Provider.Name(), bestProvider.Score, bestProvider.Reason))
+
+	// Log other options for transparency
+	for i := 1; i < len(scores) && i < 3; i++ {
+		gl.Log("debug", fmt.Sprintf("Alternative: %s (score: %.2f) - %s",
+			scores[i].Provider.Name(), scores[i].Score, scores[i].Reason))
+	}
+
+	return bestProvider.Provider
+}
+
+// calculateProviderScore scores a provider based on multiple factors
+func calculateProviderScore(provider defs.Provider, required *defs.Capabilities, prompt string) float64 {
+	score := 0.0
+	capabilities := provider.GetCapabilities()
+
+	// Base availability score
+	if provider.IsAvailable() {
+		score += 20.0
+	}
+
+	// Model quality scoring (provider-specific knowledge)
+	switch provider.Name() {
+	case "claude":
+		score += 25.0 // Excellent for code analysis and reasoning
+	case "openai", "chatgpt":
+		score += 23.0 // Very good general purpose
+	case "deepseek":
+		score += 20.0 // Good for code-related tasks
+	case "gemini":
+		score += 18.0 // Good general purpose
+	case "ollama":
+		score += 15.0 // Local, but may be slower
+	default:
+		score += 10.0 // Unknown provider
+	}
+
+	// Token capacity scoring (more headroom = better)
+	promptLen := float64(len(prompt))
+	maxTokens := float64(capabilities.MaxTokens)
+	if maxTokens > 0 {
+		utilizationRatio := promptLen / maxTokens
+		if utilizationRatio < 0.5 { // Plenty of headroom
+			score += 15.0
+		} else if utilizationRatio < 0.8 { // Reasonable headroom
+			score += 10.0
+		} else { // Tight fit
+			score += 5.0
+		}
+	}
+
+	// Capability matching (only add if actually required)
+	if required != nil {
+		if required.SupportsBatch && capabilities.SupportsBatch {
+			score += 5.0
+		}
+		if required.SupportsStreaming && capabilities.SupportsStreaming {
+			score += 5.0
+		}
+	}
+
+	// Model diversity scoring
+	if capabilities.Models != nil && len(capabilities.Models) > 0 {
+		score += float64(len(capabilities.Models)) * 2.0 // More models = more flexibility
+	}
+
+	// Task-specific optimizations based on prompt content
+	promptLower := strings.ToLower(prompt)
+	if strings.Contains(promptLower, "code") || strings.Contains(promptLower, "repository") {
+		// Code analysis tasks
+		switch provider.Name() {
+		case "claude":
+			score += 10.0 // Excellent at code analysis
+		case "deepseek":
+			score += 8.0 // Specialized for code
+		case "openai":
+			score += 6.0 // Good at code
+		}
+	}
+
+	if strings.Contains(promptLower, "security") || strings.Contains(promptLower, "vulnerability") {
+		// Security analysis tasks
+		switch provider.Name() {
+		case "claude":
+			score += 8.0 // Great at security analysis
+		case "openai":
+			score += 6.0 // Good at security
+		}
+	}
+
+	if strings.Contains(promptLower, "json") || strings.Contains(promptLower, "format") {
+		// Structured output tasks
+		switch provider.Name() {
+		case "openai":
+			score += 8.0 // Excellent at structured output
+		case "claude":
+			score += 6.0 // Good at structured output
+		}
+	}
+
+	return score
+}
+
+// getScoreReason provides human-readable explanation for provider selection
+func getScoreReason(provider defs.Provider, score float64) string {
+	name := provider.Name()
+	capabilities := provider.GetCapabilities()
+
+	reasons := []string{}
+
+	// Quality assessment
+	if score >= 80 {
+		reasons = append(reasons, "Excellent fit")
+	} else if score >= 60 {
+		reasons = append(reasons, "Good match")
+	} else if score >= 40 {
+		reasons = append(reasons, "Adequate option")
+	} else {
+		reasons = append(reasons, "Fallback choice")
+	}
+
+	// Specific strengths
+	switch name {
+	case "claude":
+		reasons = append(reasons, "Superior reasoning")
+	case "openai":
+		reasons = append(reasons, "Reliable performance")
+	case "deepseek":
+		reasons = append(reasons, "Code-specialized")
+	case "ollama":
+		reasons = append(reasons, "Local deployment")
+	}
+
+	// Technical details
+	if capabilities != nil {
+		if capabilities.MaxTokens > 100000 {
+			reasons = append(reasons, "Large context")
+		}
+		if len(capabilities.Models) > 1 {
+			reasons = append(reasons, "Multiple models")
+		}
+	}
+
+	return strings.Join(reasons, ", ")
 }

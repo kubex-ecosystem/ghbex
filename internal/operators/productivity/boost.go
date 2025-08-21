@@ -995,13 +995,6 @@ func analyzeWorkflowAutomation(ctx context.Context, client *github.Client, owner
 
 // Generate suggested workflows
 func generateSuggestedWorkflows() []SuggestedWorkflow {
-	return []SuggestedWorkflow{
-		{
-			Name:     "Dependency Security Scan",
-			Purpose:  "Automated security scanning of dependencies",
-			Triggers: []string{"schedule", "pull_request"},
-			Template: `// Generate suggested workflows
-func generateSuggestedWorkflows() []SuggestedWorkflow {
 	// TODO: Implement real workflow suggestion analysis
 	// Currently returning empty to avoid hardcoded suggestions
 	// Analysis should examine:
@@ -1011,29 +1004,6 @@ func generateSuggestedWorkflows() []SuggestedWorkflow {
 	// - Security and compliance requirements
 
 	return []SuggestedWorkflow{}
-}`,
-			Benefits: []string{"Early vulnerability detection", "Compliance", "Automated reporting"},
-			Priority: "high",
-			Effort:   "low",
-		},
-		{
-			Name:     "Auto-label PRs",
-			Purpose:  "Automatically label pull requests based on changes",
-			Triggers: []string{"pull_request"},
-			Template: `name: Auto Label PRs
-on:
-  pull_request:
-    types: [opened, synchronize]
-jobs:
-  label:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/labeler@v4`,
-			Benefits: []string{"Consistent labeling", "Reduced manual work", "Better organization"},
-			Priority: "medium",
-			Effort:   "low",
-		},
-	}
 }
 
 // Generate workflow optimizations
