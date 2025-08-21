@@ -19,7 +19,7 @@ import (
 
 	githubx "github.com/rafa-mori/ghbex/internal/client"
 	"github.com/rafa-mori/ghbex/internal/config"
-	"github.com/rafa-mori/ghbex/internal/defs"
+	"github.com/rafa-mori/ghbex/internal/defs/common"
 	"github.com/rafa-mori/ghbex/internal/frontend"
 	"github.com/rafa-mori/ghbex/internal/interfaces"
 	"github.com/rafa-mori/ghbex/internal/manager"
@@ -152,7 +152,7 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 	}
 
 	// notifiers
-	notifierz := defs.NewNotifiers()
+	notifierz := common.NewNotifiers()
 	for _, n := range g.MainConfig.GetNotifiers().GetNotifiers() {
 		switch n.GetType() {
 		case "slack":

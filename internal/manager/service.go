@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/google/go-github/v61/github"
-	"github.com/rafa-mori/ghbex/internal/defs"
+	"github.com/rafa-mori/ghbex/internal/defs/common"
 	"github.com/rafa-mori/ghbex/internal/defs/gitz"
 	"github.com/rafa-mori/ghbex/internal/interfaces"
 	"github.com/rafa-mori/ghbex/internal/notifiers"
@@ -64,8 +64,8 @@ func (s *Service) SanitizeRepo(ctx context.Context, owner, repo string, rules in
 	title := fmt.Sprintf("Repo sanitize: %s/%s (dry_run=%v)", owner, repo, dryRun)
 	for _, n := range s.notifiers {
 		_ = n.Send(ctx, title, md,
-			defs.NewAttachment("report.json", jb),
-			defs.NewAttachment("report.md", []byte(md)),
+			common.NewAttachment("report.json", jb),
+			common.NewAttachment("report.md", []byte(md)),
 		)
 	}
 	return rpt, nil

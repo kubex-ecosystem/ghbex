@@ -1,4 +1,5 @@
-package defs
+// Package core provides the implementation of the Runtime interface.
+package core
 
 import (
 	"github.com/rafa-mori/ghbex/internal/interfaces"

@@ -1,4 +1,5 @@
-package defs
+// Package common provides common utilities and types.
+package common
 
 import (
 	"context"

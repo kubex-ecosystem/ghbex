@@ -7,7 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/rafa-mori/ghbex/internal/defs"
+	"github.com/rafa-mori/ghbex/internal/defs/common"
+	"github.com/rafa-mori/ghbex/internal/defs/core"
 	"github.com/rafa-mori/ghbex/internal/defs/gitz"
 	"github.com/rafa-mori/ghbex/internal/defs/gromptz"
 	"github.com/rafa-mori/ghbex/internal/interfaces"
@@ -19,12 +20,12 @@ import (
 
 // MainConfig holds the main configuration for the GHBEX application.
 type MainConfig struct {
-	ConfigFilePath  string `yaml:"-" json:"-"`
-	*defs.Runtime   `yaml:"runtime" json:"runtime"`
-	*defs.Server    `yaml:"server" json:"server"`
-	*gitz.GitHub    `yaml:"github" json:"github"`
-	*defs.Notifiers `mapstructure:",squash"`
-	Grompt          gromptz.Grompt `yaml:"-" json:"-"`
+	ConfigFilePath    string `yaml:"-" json:"-"`
+	*core.Runtime     `yaml:"runtime" json:"runtime"`
+	*core.Server      `yaml:"server" json:"server"`
+	*gitz.GitHub      `yaml:"github" json:"github"`
+	*common.Notifiers `mapstructure:",squash"`
+	Grompt            gromptz.Grompt `yaml:"-" json:"-"`
 }
 
 func NewMainConfigObj() (interfaces.IMainConfig, error) {
@@ -111,8 +112,8 @@ func NewMainConfigType(
 	}
 	cfg := &MainConfig{
 		ConfigFilePath: configFilePath,
-		Runtime:        defs.NewRuntimeType(debug, disableDryRun, reportDir, background),
-		Server:         defs.NewServerType(bindAddr, port),
+		Runtime:        core.NewRuntimeType(debug, disableDryRun, reportDir, background),
+		Server:         core.NewServerType(bindAddr, port),
 		GitHub: gitz.NewGitHubType(
 			gitz.NewGitHubAuthType(
 				"pat",
@@ -125,10 +126,10 @@ func NewMainConfigType(
 			),
 			make([]interfaces.IRepoCfg, 0),
 		),
-		Notifiers: defs.NewNotifiersType(
-			defs.NewNotifierType("slack", GetEnvOrDefault("SLACK_WEBHOOK_URL", "")),
-			defs.NewNotifierType("discord", GetEnvOrDefault("DISCORD_WEBHOOK_URL", "")),
-			defs.NewNotifierType("email", GetEnvOrDefault("EMAIL_SMTP_SERVER", "")),
+		Notifiers: common.NewNotifiersType(
+			common.NewNotifierType("slack", GetEnvOrDefault("SLACK_WEBHOOK_URL", "")),
+			common.NewNotifierType("discord", GetEnvOrDefault("DISCORD_WEBHOOK_URL", "")),
+			common.NewNotifierType("email", GetEnvOrDefault("EMAIL_SMTP_SERVER", "")),
 		),
 		Grompt: gromptz.NewPromptEngine(gromptEngineCfg),
 	}
@@ -221,7 +222,7 @@ func (c *MainConfig) GetRuntime() interfaces.IRuntime {
 		return nil
 	}
 	if c.Runtime == nil {
-		c.Runtime = defs.NewRuntimeType(
+		c.Runtime = core.NewRuntimeType(
 			GetEnvOrDefault("GHBEX_DEBUG", false),
 			GetEnvOrDefault("GHBEX_DRY_RUN", true),
 			GetEnvOrDefault("GHBEX_REPORT_DIR", "reports"),
@@ -236,7 +237,7 @@ func (c *MainConfig) GetServer() interfaces.IServer {
 		return nil
 	}
 	if c.Server == nil {
-		c.Server = defs.NewServerType(
+		c.Server = core.NewServerType(
 			GetEnvOrDefault("SERVER_HOST", "0.0.0.0"),
 			GetEnvOrDefault("SERVER_PORT", "8080"),
 		)
@@ -270,11 +271,11 @@ func (c *MainConfig) GetNotifiers() interfaces.INotifiers {
 		return nil
 	}
 	if c.Notifiers == nil {
-		notifiers := []*defs.Notifier{}
-		notifiers = append(notifiers, defs.NewNotifierType("slack", GetEnvOrDefault("SLACK_WEBHOOK_URL", "")))
-		notifiers = append(notifiers, defs.NewNotifierType("discord", GetEnvOrDefault("DISCORD_WEBHOOK_URL", "")))
-		notifiers = append(notifiers, defs.NewNotifierType("email", GetEnvOrDefault("EMAIL_SMTP_SERVER", "")))
-		c.Notifiers = defs.NewNotifiersType(
+		notifiers := []*common.Notifier{}
+		notifiers = append(notifiers, common.NewNotifierType("slack", GetEnvOrDefault("SLACK_WEBHOOK_URL", "")))
+		notifiers = append(notifiers, common.NewNotifierType("discord", GetEnvOrDefault("DISCORD_WEBHOOK_URL", "")))
+		notifiers = append(notifiers, common.NewNotifierType("email", GetEnvOrDefault("EMAIL_SMTP_SERVER", "")))
+		c.Notifiers = common.NewNotifiersType(
 			notifiers...,
 		)
 	}

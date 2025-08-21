@@ -1,4 +1,4 @@
-package defs
+package common
 
 import "github.com/rafa-mori/ghbex/internal/interfaces"
 
