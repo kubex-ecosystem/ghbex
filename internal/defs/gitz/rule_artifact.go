@@ -1,6 +1,6 @@
 package gitz
 
-import "github.com/rafa-mori/ghbex/internal/interfaces"
+import "github.com/rafa-mori/ghbex/internal/defs/interfaces"
 
 type ArtifactsRule struct {
 	MaxAgeDays int `yaml:"max_age_days" json:"max_age_days"`

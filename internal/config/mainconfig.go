@@ -11,7 +11,7 @@ import (
 	"github.com/rafa-mori/ghbex/internal/defs/core"
 	"github.com/rafa-mori/ghbex/internal/defs/gitz"
 	"github.com/rafa-mori/ghbex/internal/defs/gromptz"
-	"github.com/rafa-mori/ghbex/internal/interfaces"
+	"github.com/rafa-mori/ghbex/internal/defs/interfaces"
 
 	"gopkg.in/yaml.v3"
 

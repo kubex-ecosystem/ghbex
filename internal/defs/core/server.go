@@ -1,6 +1,6 @@
 package core
 
-import "github.com/rafa-mori/ghbex/internal/interfaces"
+import "github.com/rafa-mori/ghbex/internal/defs/interfaces"
 
 type Server struct {
 	Addr string `yaml:"addr" json:"addr"`

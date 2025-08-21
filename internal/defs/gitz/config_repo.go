@@ -1,6 +1,6 @@
 package gitz
 
-import "github.com/rafa-mori/ghbex/internal/interfaces"
+import "github.com/rafa-mori/ghbex/internal/defs/interfaces"
 
 type RepoCfg struct {
 	Owner  string `yaml:"owner" json:"owner"`

@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	config "github.com/rafa-mori/ghbex/internal/config"
-	"github.com/rafa-mori/ghbex/internal/interfaces"
+	"github.com/rafa-mori/ghbex/internal/defs/interfaces"
 	gl "github.com/rafa-mori/ghbex/internal/module/logger"
 	ghserver "github.com/rafa-mori/ghbex/internal/server"
 	"gopkg.in/yaml.v3"

@@ -12,7 +12,7 @@ import (
 	"github.com/google/go-github/v61/github"
 
 	"github.com/rafa-mori/ghbex/internal/defs/gromptz"
-	"github.com/rafa-mori/ghbex/internal/interfaces"
+	"github.com/rafa-mori/ghbex/internal/defs/interfaces"
 	gl "github.com/rafa-mori/ghbex/internal/module/logger"
 
 	configLib "github.com/rafa-mori/ghbex/internal/config"

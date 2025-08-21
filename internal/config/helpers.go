@@ -10,7 +10,7 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"github.com/rafa-mori/ghbex/internal/interfaces"
+	"github.com/rafa-mori/ghbex/internal/defs/interfaces"
 
 	gl "github.com/rafa-mori/ghbex/internal/module/logger"
 

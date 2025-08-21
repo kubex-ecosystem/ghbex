@@ -2,7 +2,7 @@
 package core
 
 import (
-	"github.com/rafa-mori/ghbex/internal/interfaces"
+	"github.com/rafa-mori/ghbex/internal/defs/interfaces"
 )
 
 type Runtime struct {

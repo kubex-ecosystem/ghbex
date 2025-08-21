@@ -4,7 +4,7 @@ package ghbex
 import (
 	"github.com/rafa-mori/ghbex/internal/config"
 	"github.com/rafa-mori/ghbex/internal/defs/gitz"
-	"github.com/rafa-mori/ghbex/internal/interfaces"
+	"github.com/rafa-mori/ghbex/internal/defs/interfaces"
 	ghserver "github.com/rafa-mori/ghbex/internal/server"
 )
 
