@@ -1,0 +1,42 @@
+runtime:
+  dry_run: true
+  report_dir: ./_reports
+
+server:
+  addr: ":8088"
+
+github:
+  auth:
+    kind: "pat" # "pat" | "app"
+    token: "${GITHUB_TOKEN}" # se kind=pat
+    app_id: 0 # se kind=app
+    installation_id: 0 # se kind=app
+    private_key_path: "./secrets/gh_app.pem"
+    base_url: "" # GHES: https://ghe.example/api/v3/
+    upload_url: "" # GHES: https://ghe.example/api/uploads/
+  repos:
+    - owner: "rafa-mori"
+      name: "grompt"
+      rules:
+        runs:
+          max_age_days: 30
+          keep_success_last: 10
+          only_workflows: [] # ["build.yml","release.yml"]
+        artifacts:
+          max_age_days: 7
+        releases:
+          delete_drafts: true
+        security:
+          rotate_ssh_keys: false # Set to true to enable SSH key rotation
+          remove_old_keys: false # Remove old auto-generated keys
+          key_pattern: "ghbex-auto" # Pattern to identify auto-generated keys
+        monitoring:
+          check_inactivity: true # Monitor repository activity
+          inactive_days_threshold: 30 # Days to consider repo inactive
+          monitor_prs: true # Monitor pull request activity
+          monitor_issues: true # Monitor issue activity
+
+notifiers:
+  - type: "stdout"
+  - type: "discord"
+    webhook: "${DISCORD_WEBHOOK_URL}"

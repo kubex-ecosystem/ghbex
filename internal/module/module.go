@@ -20,10 +20,11 @@ func (m *Ghbex) Alias() string {
 	return ""
 }
 func (m *Ghbex) ShortDescription() string {
-	return "Ghbex a tool for building prompts with AI assistance."
+	return "GHbex is a command-line tool for managing GitHub repositories and file markers."
 }
 func (m *Ghbex) LongDescription() string {
-	return `Ghbex: A tool for building prompts with AI assistance using real engineering practices. Better prompts, better results.., Awesome prompts, AMAZING results !!!`
+	return `GHbex is a command-line tool for managing GitHub repositories and file markers.
+`
 }
 func (m *Ghbex) Usage() string {
 	return "ghbex [command] [args]"

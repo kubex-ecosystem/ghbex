@@ -3,47 +3,16 @@ package cli
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"log"
-	"net/http"
-	"os"
-	"strings"
-	"time"
+	"fmt"
 
-	"github.com/google/go-github/v61/github"
-	"github.com/spf13/cobra"
+	config "github.com/rafa-mori/ghbex/internal/config"
+	"github.com/rafa-mori/ghbex/internal/interfaces"
+	gl "github.com/rafa-mori/ghbex/internal/module/logger"
+	ghserver "github.com/rafa-mori/ghbex/internal/server"
 	"gopkg.in/yaml.v3"
 
-	"github.com/rafa-mori/ghbex/internal/githubx"
-	"github.com/rafa-mori/ghbex/internal/notify"
-	"github.com/rafa-mori/ghbex/internal/sanitize"
+	"github.com/spf13/cobra"
 )
-
-type cfgRoot struct {
-	Runtime struct {
-		DryRun    bool   `yaml:"dry_run"`
-		ReportDir string `yaml:"report_dir"`
-	} `yaml:"runtime"`
-	Server struct {
-		Addr string `yaml:"addr"`
-	} `yaml:"server"`
-	GitHub struct {
-		Auth struct {
-			Kind           string `yaml:"kind"` // pat|app
-			Token          string `yaml:"token"`
-			AppID          int64  `yaml:"app_id"`
-			InstallationID int64  `yaml:"installation_id"`
-			PrivateKeyPath string `yaml:"private_key_path"`
-			BaseURL        string `yaml:"base_url"`
-			UploadURL      string `yaml:"upload_url"`
-		} `yaml:"auth"`
-		Repos []sanitize.RepoCfg `yaml:"repos"`
-	} `yaml:"github"`
-	Notifiers []struct {
-		Type    string `yaml:"type"`
-		Webhook string `yaml:"webhook"`
-	} `yaml:"notifiers"`
-}
 
 func ServerCmdList() []*cobra.Command {
 	var cmds []*cobra.Command
@@ -52,6 +21,7 @@ func ServerCmdList() []*cobra.Command {
 	cmds = append(cmds, startServer())
 	cmds = append(cmds, stopServer())
 	cmds = append(cmds, statusServer())
+	cmds = append(cmds, configServer())
 	return cmds
 }
 
@@ -85,139 +55,179 @@ func statusServer() *cobra.Command {
 	return statusCmd
 }
 
+func configServer() *cobra.Command {
+	var configFilePath, format string
+
+	configCmd := &cobra.Command{
+		Use:   "config",
+		Short: "Get server configuration",
+		Annotations: GetDescriptions([]string{
+			"This command gets the configuration of the server.",
+			"This command checks the current configuration settings of the server.",
+		}, false),
+		Run: func(cmd *cobra.Command, args []string) {
+			// Get server configuration logic
+			cfg, err := config.LoadFromFile(configFilePath)
+			if err != nil {
+				gl.Log("error", "Failed to load config: %v", err)
+				return
+			}
+			// Additional logic to display or use the configuration
+			if cfg != nil {
+				switch format {
+				case "yaml", "yml", "y":
+					printYAMLConfig(cfg)
+				case "json", "j":
+					printJSONConfig(cfg)
+				default:
+					printTreeConfig(cfg)
+				}
+			} else {
+				gl.Log("warn", "No configuration found")
+			}
+		},
+	}
+
+	configCmd.Flags().StringVarP(&configFilePath, "config", "c", "", "Path to the configuration file")
+	configCmd.Flags().StringVarP(&format, "format", "f", "tree", "Output format (tree/json/yaml)")
+
+	return configCmd
+}
+
 func startServer() *cobra.Command {
+	var configFilePath, bindAddr, port, name, reportDir, owner string
+	var debug, disableDryRun, background bool
+	var repositories []string
+	var cfg *config.MainConfig
+
 	startCmd := &cobra.Command{
-		Use:   "start",
-		Short: "Start the server",
+		Use:     "start",
+		Aliases: []string{"server", "run"},
+		Short:   "Start the server",
 		Annotations: GetDescriptions([]string{
 			"This command starts the server.",
 			"This command initializes the server and starts waiting for help to build prompts.",
 		}, false),
 		Run: func(cmd *cobra.Command, args []string) {
+			// Load configuration from file if provided
+			var err error
+			var cfgI interfaces.IMainConfig
+			if configFilePath == "" {
+				if bindAddr == "" && port == "" {
+					cfgI, err = config.LoadFromFile("")
+					if err != nil {
+						gl.Log("fatal", fmt.Sprintf("Failed to load config: %v", err))
+					}
+					if cfgI == nil {
+						gl.Log("fatal", "Failed to load configuration")
+					}
+				} else {
+					// Create a new config object with provided flags
+					cfgIt, err := config.NewMainConfigType(bindAddr, port, reportDir, owner, repositories, debug, !disableDryRun, background)
+					if err != nil {
+						gl.Log("fatal", fmt.Sprintf("Failed to create new configuration: %v", err))
+					}
+					if cfgIt == nil {
+						gl.Log("fatal", "Failed to create new configuration")
+					}
+					cfgI = cfgIt
+				}
+				if cfgO, ok := cfgI.GetConfigObject().(*config.MainConfig); ok {
+					cfg = cfgO
+				} else {
+					gl.Log("fatal", "Configuration object is not of type MainConfig")
+				}
+			}
+
+			// Initialize the server
+			srv := ghserver.NewGHServerEngine(cfg)
+			if srv == nil {
+				gl.Log("fatal", "Failed to initialize server engine")
+			}
+
 			// Start server logic
+			if err := srv.Start(context.Background()); err != nil {
+				gl.Log("fatal", fmt.Sprintf("Failed to start server: %v", err))
+			}
 		},
 	}
+
+	// Define flags for the command
+	startCmd.Flags().StringVarP(&configFilePath, "config", "c", "", "Path to the configuration file")
+	startCmd.Flags().StringVarP(&bindAddr, "bind", "b", "0.0.0.0", "Address to bind the server (Default: 0.0.0.0)")
+	startCmd.Flags().StringVarP(&port, "port", "p", "8088", "Port to run the server (Default: 8088)")
+	startCmd.Flags().StringVarP(&name, "name", "n", "GHbex", "Name of the server (Default: GHbex)")
+	startCmd.Flags().StringVarP(&owner, "owner", "o", "", "Owner of the server (GitHub username)")
+	startCmd.Flags().StringVarP(&reportDir, "report-dir", "R", "", "Directory to store reports")
+	startCmd.Flags().StringSliceVarP(&repositories, "repos", "r", []string{}, "List of repositories to monitor (format: owner/repo)")
+	startCmd.Flags().BoolVarP(&debug, "debug", "d", false, "Enable debug mode")
+	startCmd.Flags().BoolVarP(&disableDryRun, "disable-dry-run", "D", false, "Disable dry run mode (Default: false - Dry run by default)")
+	startCmd.Flags().BoolVarP(&background, "background", "B", true, "Run in background")
+
 	return startCmd
 }
 
-func main() {
-	// load config
-	b, err := os.ReadFile("config/sanitize.yaml")
+func printYAMLConfig(cfg interfaces.IMainConfig) {
+	gl.Log("answer", "GHbex Settings (YAML):")
+	// Use a YAML library to marshal the config into YAML format
+	yamlData, err := yaml.Marshal(cfg)
 	if err != nil {
-		log.Printf("using example config: %v", err)
-		b, _ = os.ReadFile("config/sanitize.yaml.example")
+		gl.Log("error", "Failed to marshal config to YAML: %v", err)
+		return
 	}
+	gl.Log("answer", string(yamlData))
+}
 
-	var cfg cfgRoot
-	if err := yaml.Unmarshal(b, &cfg); err != nil {
-		log.Fatal(err)
-	}
-
-	if cfg.Server.Addr == "" {
-		cfg.Server.Addr = ":8088"
-	}
-
-	// build github client
-	ctx := context.Background()
-	var ghc *github.Client
-	switch strings.ToLower(cfg.GitHub.Auth.Kind) {
-	case "pat":
-		ghc, err = githubx.NewPAT(ctx, githubx.PATConfig{
-			Token:     os.ExpandEnv(cfg.GitHub.Auth.Token),
-			BaseURL:   cfg.GitHub.Auth.BaseURL,
-			UploadURL: cfg.GitHub.Auth.UploadURL,
-		})
-	case "app":
-		ghc, err = githubx.NewApp(ctx, githubx.AppConfig{
-			AppID:          cfg.GitHub.Auth.AppID,
-			InstallationID: cfg.GitHub.Auth.InstallationID,
-			PrivateKeyPath: cfg.GitHub.Auth.PrivateKeyPath,
-			BaseURL:        cfg.GitHub.Auth.BaseURL,
-			UploadURL:      cfg.GitHub.Auth.UploadURL,
-		})
-	default:
-		err = errors.New("github.auth.kind must be pat|app")
-	}
-
+func printJSONConfig(cfg interfaces.IMainConfig) {
+	gl.Log("answer", "GHbex Settings (JSON):")
+	// Use a JSON library to marshal the config into JSON format
+	jsonData, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
-		log.Fatal(err)
+		gl.Log("error", "Failed to marshal config to JSON: %v", err)
+		return
 	}
+	gl.Log("answer", string(jsonData))
+}
 
-	// notifiers
-	var notifiers []sanitize.Notifier
-	for _, n := range cfg.Notifiers {
-		switch n.Type {
-		case "discord":
-			notifiers = append(notifiers, notify.Discord{Webhook: os.ExpandEnv(n.Webhook)})
-		case "stdout":
-			notifiers = append(notifiers, notify.Stdout{})
+func printTreeConfig(cfg interfaces.IMainConfig) {
+	firstLevelMid := "├─ "
+	firstLevelEnd := "└─ "
+	secLevelMid := "│    ├─ "
+	secLevelEnd := "│    └─ "
+	thirdLevelMid := "│       ├─ "
+	thirdLevelEnd := "│       └─ "
+	gl.Log("answer", "GHbex Settings:")
+	gl.Log("answer", fmt.Sprintf("%sServer:", firstLevelMid))
+	gl.Log("answer", fmt.Sprintf("%sAddr: %s", secLevelMid, cfg.GetServer().GetAddr()))
+	gl.Log("answer", fmt.Sprintf("%sPort: %s", secLevelEnd, cfg.GetServer().GetPort()))
+	gl.Log("answer", fmt.Sprintf("%sRuntime:", firstLevelMid))
+	gl.Log("answer", fmt.Sprintf("%sReport Directory: %s", secLevelMid, cfg.GetRuntime().GetReportDir()))
+	gl.Log("answer", fmt.Sprintf("%sDry Run: %t", secLevelMid, cfg.GetRuntime().GetDryRun()))
+	gl.Log("answer", fmt.Sprintf("%sDebug: %t", secLevelEnd, cfg.GetRuntime().GetDebug()))
+	gl.Log("answer", fmt.Sprintf("%sGitHub:", firstLevelMid))
+	gl.Log("answer", fmt.Sprintf("%sAuth Kind: %s", secLevelMid, cfg.GetGitHub().GetAuth().GetKind()))
+	gl.Log("answer", fmt.Sprintf("%sInstallation ID: %d", secLevelMid, cfg.GetGitHub().GetAuth().GetInstallationID()))
+	gl.Log("answer", fmt.Sprintf("%sPrivate Key Path: %s", secLevelMid, cfg.GetGitHub().GetAuth().GetPrivateKeyPath()))
+	gl.Log("answer", fmt.Sprintf("%sUpload URL: %s", secLevelMid, cfg.GetGitHub().GetAuth().GetUploadURL()))
+	gl.Log("answer", fmt.Sprintf("%sBase URL: %s", secLevelMid, cfg.GetGitHub().GetAuth().GetBaseURL()))
+	gl.Log("answer", fmt.Sprintf("%sRepo list (%d):", secLevelEnd, len(cfg.GetGitHub().GetRepos())))
+	for i, repo := range cfg.GetGitHub().GetRepos() {
+		if i >= len(cfg.GetGitHub().GetRepos())-1 {
+			gl.Log("answer", fmt.Sprintf("%s[%d]: %s/%s", thirdLevelEnd, i, repo.GetOwner(), repo.GetName()))
+		} else {
+			gl.Log("answer", fmt.Sprintf("%s[%d]: %s/%s,", thirdLevelMid, i, repo.GetOwner(), repo.GetName()))
 		}
 	}
-
-	// service
-	svc := sanitize.New(ghc, sanitize.Config{
-		Runtime: struct {
-			DryRun    bool   "yaml:\"dry_run\""
-			ReportDir string "yaml:\"report_dir\""
-		}{DryRun: cfg.Runtime.DryRun, ReportDir: cfg.Runtime.ReportDir},
-		GitHub: struct {
-			Repos []sanitize.RepoCfg "yaml:\"repos\""
-		}{Repos: cfg.GitHub.Repos},
-	}, notifiers...)
-
-	// route: POST /admin/repos/{owner}/{repo}/sanitize?dry_run=1
-	http.HandleFunc("/admin/repos/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "only POST", http.StatusMethodNotAllowed)
-			return
+	gl.Log("answer", fmt.Sprintf("%sNotifiers (%d):", firstLevelEnd, len(cfg.GetNotifiers().GetNotifiers())))
+	for i, notifier := range cfg.GetNotifiers().GetNotifiers() {
+		webhook := notifier.GetWebhook()
+		if webhook == "" {
+			webhook = notifier.GetType()
 		}
-		// naive parse
-		parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/admin/repos/"), "/")
-		if len(parts) < 3 || parts[2] != "sanitize" {
-			http.NotFound(w, r)
-			return
+		if i < len(cfg.GetNotifiers().GetNotifiers())-1 {
+			gl.Log("answer", fmt.Sprintf("    %s[%d] (%s): %s", firstLevelEnd, i, notifier.GetType(), webhook))
+		} else {
+			gl.Log("answer", fmt.Sprintf("    %s[%d] (%s): %s", firstLevelEnd, i, notifier.GetType(), webhook))
 		}
-		owner, repo := parts[0], parts[1]
-		dry := r.URL.Query().Get("dry_run")
-		dryRun := dry == "1" || strings.EqualFold(dry, "true")
-
-		// find rules (optional override via cfg)
-		var rules sanitize.Rules
-		for _, rc := range cfg.GitHub.Repos {
-			if rc.Owner == owner && rc.Name == repo {
-				rules = rc.Rules
-				break
-			}
-		}
-
-		var dummy sanitize.Rules
-		dummy.Runs.MaxAgeDays = 30
-		dummy.Artifacts.MaxAgeDays = 7
-		dummy.Releases.DeleteDrafts = true
-
-		if rules.Artifacts == dummy.Artifacts &&
-			rules.Runs.MaxAgeDays == dummy.Runs.MaxAgeDays &&
-			rules.Releases == dummy.Releases {
-			// default sane rules
-			rules.Runs.MaxAgeDays = 30
-			rules.Artifacts.MaxAgeDays = 7
-			rules.Releases.DeleteDrafts = true
-		}
-
-		rpt, err := svc.SanitizeRepo(r.Context(), owner, repo, rules, dryRun)
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		_ = json.NewEncoder(w).Encode(rpt)
-	})
-
-	srv := &http.Server{
-		Addr:              cfg.Server.Addr,
-		ReadHeaderTimeout: 5 * time.Second,
 	}
-
-	log.Printf("listening on %s", cfg.Server.Addr)
-	log.Fatal(srv.ListenAndServe())
 }
