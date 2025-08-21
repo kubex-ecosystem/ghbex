@@ -62,7 +62,7 @@ func NewGithubClient(ctx context.Context, cfg interfaces.IMainConfig) (*github.C
 	}
 	gl.Log(
 		"debug",
-		fmt.Sprintf("github.auth.kind: %s, token: %s, base_url: %s, upload_url: %s",
+		fmt.Sprintf("github.auth.kind: %s, base_url: %s, upload_url: %s",
 			gh.GetAuth().GetKind(), gh.GetAuth().GetBaseURL(), gh.GetAuth().GetUploadURL()),
 	)
 

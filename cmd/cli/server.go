@@ -119,9 +119,6 @@ func startServer() *cobra.Command {
 				} else {
 					// Create a new config object with provided flags
 					cfg = config.NewMainConfig(bindAddr, port, reportDir, debug, !disableDryRun, background)
-					if cfg == nil {
-						log.Fatalf("Failed to create config: %v", "Configuration is nil")
-					}
 					// Save the config to a file
 					if err := config.SaveToFile(cfg, ""); err != nil {
 						log.Fatalf("Failed to save config: %v", err)
