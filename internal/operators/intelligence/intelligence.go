@@ -5,133 +5,165 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/google/go-github/v61/github"
-	"github.com/rafa-mori/grompt"
 
+	"github.com/rafa-mori/ghbex/internal/defs"
+	"github.com/rafa-mori/ghbex/internal/interfaces"
 	gl "github.com/rafa-mori/ghbex/internal/module/logger"
+
+	configLib "github.com/rafa-mori/ghbex/internal/config"
 )
 
 // IntelligenceOperator provides AI-powered analysis using Grompt engine
 type IntelligenceOperator struct {
 	client       *github.Client
-	promptEngine grompt.PromptEngine
+	promptEngine defs.PromptEngine
 }
 
 // RepositoryInsight provides quick AI insights for repository cards
 type RepositoryInsight struct {
-	RepositoryName  string    `json:"repository_name"`
-	AIScore         float64   `json:"ai_score"`
-	QuickAssessment string    `json:"quick_assessment"`
-	HealthIcon      string    `json:"health_icon"`
-	MainTag         string    `json:"main_tag"`
-	RiskLevel       string    `json:"risk_level"`
-	Opportunity     string    `json:"opportunity"`
-	LastAnalyzed    time.Time `json:"last_analyzed"`
+	RepositoryName  string    `json:"repository_name" yaml:"repository_name"`
+	AIScore         float64   `json:"ai_score" yaml:"ai_score"`
+	QuickAssessment string    `json:"quick_assessment" yaml:"quick_assessment"`
+	HealthIcon      string    `json:"health_icon" yaml:"health_icon"`
+	MainTag         string    `json:"main_tag" yaml:"main_tag"`
+	RiskLevel       string    `json:"risk_level" yaml:"risk_level"`
+	Opportunity     string    `json:"opportunity" yaml:"opportunity"`
+	LastAnalyzed    time.Time `json:"last_analyzed" yaml:"last_analyzed"`
 }
 
 // SmartRecommendation provides contextual recommendations
 type SmartRecommendation struct {
-	ID          string    `json:"id"`
-	Type        string    `json:"type"` // "security", "performance", "maintenance", "enhancement"
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Impact      string    `json:"impact"`
-	Effort      string    `json:"effort"`
-	Urgency     string    `json:"urgency"`
-	GeneratedAt time.Time `json:"generated_at"`
+	ID          string    `json:"id" yaml:"id"`
+	Type        string    `json:"type" yaml:"type"` // "security", "performance", "maintenance", "enhancement"
+	Title       string    `json:"title" yaml:"title"`
+	Description string    `json:"description" yaml:"description"`
+	Impact      string    `json:"impact" yaml:"impact"`
+	Effort      string    `json:"effort" yaml:"effort"`
+	Urgency     string    `json:"urgency" yaml:"urgency"`
+	GeneratedAt time.Time `json:"generated_at" yaml:"generated_at"`
 }
 
 // HumanizedReport represents a comprehensive AI analysis
 type HumanizedReport struct {
-	RepositoryName    string                `json:"repository_name"`
-	OverallAssessment OverallAssessment     `json:"overall_assessment"`
-	KeyInsights       []KeyInsight          `json:"key_insights"`
-	Recommendations   []SmartRecommendation `json:"recommendations"`
-	ProductivityTips  []ProductivityTip     `json:"productivity_tips"`
-	RiskFactors       []RiskFactor          `json:"risk_factors"`
-	NextSteps         []NextStep            `json:"next_steps"`
-	GeneratedAt       time.Time             `json:"generated_at"`
-	Metadata          map[string]any        `json:"metadata"`
+	RepositoryName    string                `json:"repository_name" yaml:"repository_name"`
+	OverallAssessment OverallAssessment     `json:"overall_assessment" yaml:"overall_assessment"`
+	KeyInsights       []KeyInsight          `json:"key_insights" yaml:"key_insights"`
+	Recommendations   []SmartRecommendation `json:"recommendations" yaml:"recommendations"`
+	ProductivityTips  []ProductivityTip     `json:"productivity_tips" yaml:"productivity_tips"`
+	RiskFactors       []RiskFactor          `json:"risk_factors" yaml:"risk_factors"`
+	NextSteps         []NextStep            `json:"next_steps" yaml:"next_steps"`
+	GeneratedAt       time.Time             `json:"generated_at" yaml:"generated_at"`
+	Metadata          map[string]any        `json:"metadata" yaml:"metadata"`
 }
 
 // OverallAssessment provides executive summary
 type OverallAssessment struct {
-	Grade         string   `json:"grade"`
-	Score         float64  `json:"score"`
-	Summary       string   `json:"summary"`
-	KeyStrengths  []string `json:"key_strengths"`
-	KeyWeaknesses []string `json:"key_weaknesses"`
-	Trend         string   `json:"trend"` // "improving", "stable", "declining"
+	Grade         string   `json:"grade" yaml:"grade"`
+	Score         float64  `json:"score" yaml:"score"`
+	Summary       string   `json:"summary" yaml:"summary"`
+	KeyStrengths  []string `json:"key_strengths" yaml:"key_strengths"`
+	KeyWeaknesses []string `json:"key_weaknesses" yaml:"key_weaknesses"`
+	Trend         string   `json:"trend" yaml:"trend"` // "improving", "stable", "declining"
 }
 
 // KeyInsight represents important findings
 type KeyInsight struct {
-	Category    string `json:"category"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Impact      string `json:"impact"` // "high", "medium", "low"
-	Evidence    string `json:"evidence"`
+	Category    string `json:"category" yaml:"category"`
+	Title       string `json:"title" yaml:"title"`
+	Description string `json:"description" yaml:"description"`
+	Impact      string `json:"impact" yaml:"impact"` // "high", "medium", "low"
+	Evidence    string `json:"evidence" yaml:"evidence"`
 }
 
 // ProductivityTip provides actionable productivity advice
 type ProductivityTip struct {
-	Area       string `json:"area"`
-	Tip        string `json:"tip"`
-	Benefit    string `json:"benefit"`
-	Difficulty string `json:"difficulty"`
-	ROI        string `json:"roi"`
+	Area       string `json:"area" yaml:"area"`
+	Tip        string `json:"tip" yaml:"tip"`
+	Benefit    string `json:"benefit" yaml:"benefit"`
+	Difficulty string `json:"difficulty" yaml:"difficulty"`
+	ROI        string `json:"roi" yaml:"roi"`
 }
 
 // RiskFactor identifies potential risks
 type RiskFactor struct {
-	Type        string `json:"type"`
-	Level       string `json:"level"` // "critical", "high", "medium", "low"
-	Description string `json:"description"`
-	Mitigation  string `json:"mitigation"`
-	Probability string `json:"probability"`
+	Type        string `json:"type" yaml:"type"`
+	Level       string `json:"level" yaml:"level"` // "critical", "high", "medium", "low"
+	Description string `json:"description" yaml:"description"`
+	Mitigation  string `json:"mitigation" yaml:"mitigation"`
+	Probability string `json:"probability" yaml:"probability"`
 }
 
 // NextStep provides concrete actions
 type NextStep struct {
-	Order        int      `json:"order"`
-	Action       string   `json:"action"`
-	Owner        string   `json:"owner"`
-	Timeline     string   `json:"timeline"`
-	Dependencies []string `json:"dependencies"`
+	Order        int      `json:"order" yaml:"order"`
+	Action       string   `json:"action" yaml:"action"`
+	Owner        string   `json:"owner" yaml:"owner"`
+	Timeline     string   `json:"timeline" yaml:"timeline"`
+	Dependencies []string `json:"dependencies" yaml:"dependencies"`
 }
 
 // NewIntelligenceOperator creates a new Intelligence operator
-func NewIntelligenceOperator(client *github.Client) *IntelligenceOperator {
+func NewIntelligenceOperator(cfg interfaces.IMainConfig, client *github.Client) *IntelligenceOperator {
 	// Initialize Grompt with basic config
-	config := grompt.DefaultConfig("")
 
-	llmMapList := map[string]grompt.APIConfig{
-		"openai":   config.GetAPIConfig("openai"),
-		"claude":   config.GetAPIConfig("claude"),
-		"gemini":   config.GetAPIConfig("gemini"),
-		"chatgpt":  config.GetAPIConfig("chatgpt"),
-		"deepseek": config.GetAPIConfig("deepseek"),
-		"ollama":   config.GetAPIConfig("ollama"),
+	gromptEngineCfg := defs.NewGromptConfig(
+		configLib.GetEnvOrDefault(
+			"GHBEX_GROMPT_CONFIG_PATH",
+			filepath.Join(filepath.Dir(cfg.GetConfigFilePath()), "grompt.yaml"),
+		),
+	)
+	engine := defs.NewPromptEngine(gromptEngineCfg)
+
+	llmMapList := map[string]defs.APIConfig{
+		"openai":   gromptEngineCfg.GetAPIConfig("openai"),
+		"claude":   gromptEngineCfg.GetAPIConfig("claude"),
+		"gemini":   gromptEngineCfg.GetAPIConfig("gemini"),
+		"chatgpt":  gromptEngineCfg.GetAPIConfig("chatgpt"),
+		"deepseek": gromptEngineCfg.GetAPIConfig("deepseek"),
+		"ollama":   gromptEngineCfg.GetAPIConfig("ollama"),
 	}
-
-	for name, apiConfig := range llmMapList {
-		if apiConfig != nil {
-			if apiConfig.IsAvailable() {
-				gl.Log("info", fmt.Sprintf("Using %s API for AI processing", name))
-				if err := config.SetAPIKey(name, config.GetAPIKey(name)); err != nil {
-					gl.Log("error", fmt.Sprintf("Failed to set API key for %s: %v", name, err))
-				}
+	for key, apiKey := range llmMapList {
+		if apiKey == nil || apiKey.IsDemoMode() {
+			apiFromEnv := configLib.GetEnvOrDefault(
+				key,
+				"",
+			)
+			if apiFromEnv != "" {
+				gl.Log("notice", fmt.Sprintf("Using API key from environment for %s", key))
+				gromptEngineCfg.SetAPIKey(key, apiFromEnv)
 			} else {
-				gl.Log("info", fmt.Sprintf("%s API is not available, skipping", name))
+				gl.Log("debug", fmt.Sprintf("No API key configured for %s, using default config", key))
+			}
+		}
+	}
+	providers := engine.GetProviders()
+	if len(providers) == 0 {
+		gl.Log("warn", "INTELLIGENCE: No AI providers configured, using default Grompt settings")
+	} else {
+		gl.Log("info", fmt.Sprintf("INTELLIGENCE: Available AI providers: %d", len(providers)))
+		for _, provider := range providers {
+			gl.Log("info", fmt.Sprintf(" - %s: %v", provider.Name(), provider.GetCapabilities()))
+		}
+	}
+	if len(llmMapList) == 0 {
+		gl.Log("warn", "INTELLIGENCE: No LLM providers configured, using default settings")
+	} else {
+		gl.Log("info", fmt.Sprintf("INTELLIGENCE: Available LLM providers: %d", len(llmMapList)))
+		for key, apiKey := range llmMapList {
+			apiTk := gromptEngineCfg.GetAPIKey(key)
+			if apiTk != "" {
+				gl.Log("info", fmt.Sprintf(" - %s: %s (%v)", key, apiTk[:7], apiKey.IsAvailable()))
 			}
 		}
 	}
 
 	return &IntelligenceOperator{
 		client:       client,
-		promptEngine: grompt.NewPromptEngine(config),
+		promptEngine: engine,
 	}
 }
 
@@ -197,6 +229,16 @@ func (o *IntelligenceOperator) GenerateSmartRecommendations(ctx context.Context,
 
 // analyzeRepositoryWithAI uses Grompt to analyze repository
 func (o *IntelligenceOperator) analyzeRepositoryWithAI(ctx context.Context, repo *github.Repository) (float64, string, error) {
+	defer func(c context.Context) {
+		if err := recover(); err != nil {
+			gl.Log("error", fmt.Sprintf("INTELLIGENCE: AI analysis failed: %v", err))
+		}
+		if ctx.Err() != nil {
+			gl.Log("warn", fmt.Sprintf("INTELLIGENCE: AI analysis canceled: %v", ctx.Err()))
+		}
+		gl.Log("info", "INTELLIGENCE: AI analysis completed")
+	}(ctx)
+
 	prompt := fmt.Sprintf(`
 Analyze this GitHub repository and provide a quick assessment:
 
@@ -251,6 +293,16 @@ Format your response as JSON:
 
 // generateAIRecommendations creates smart recommendations using AI
 func (o *IntelligenceOperator) generateAIRecommendations(ctx context.Context, repo *github.Repository, issues []*github.Issue) ([]SmartRecommendation, error) {
+	defer func(c context.Context) {
+		if err := recover(); err != nil {
+			gl.Log("error", fmt.Sprintf("INTELLIGENCE: AI recommendations failed: %v", err))
+		}
+		if ctx.Err() != nil {
+			gl.Log("warn", fmt.Sprintf("INTELLIGENCE: AI recommendations canceled: %v", ctx.Err()))
+		}
+		gl.Log("info", "INTELLIGENCE: AI recommendations completed")
+	}(ctx)
+
 	issuesContext := ""
 	if len(issues) > 0 {
 		issuesContext = fmt.Sprintf("Recent issues: %d open, latest: '%s'",

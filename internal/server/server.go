@@ -208,7 +208,7 @@ func getRoutesMap(svc *manager.Service, g *ghServerEngine) map[string]http.Handl
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 		// Create intelligence operator for AI insights
-		intelligenceOp := i.NewIntelligenceOperator(g.ghc)
+		intelligenceOp := i.NewIntelligenceOperator(g.MainConfig, g.ghc)
 
 		repos := make([]map[string]any, 0)
 		for _, repo := range g.MainConfig.GetGitHub().GetRepos() {
@@ -431,7 +431,7 @@ func getRoutesMap(svc *manager.Service, g *ghServerEngine) map[string]http.Handl
 		startTime := time.Now()
 
 		// Create intelligence operator
-		intelligenceOp := i.NewIntelligenceOperator(g.ghc)
+		intelligenceOp := i.NewIntelligenceOperator(g.MainConfig, g.ghc)
 
 		// Generate quick insight
 		insight, err := intelligenceOp.GenerateQuickInsight(context.Background(), owner, repo)
@@ -469,7 +469,7 @@ func getRoutesMap(svc *manager.Service, g *ghServerEngine) map[string]http.Handl
 		startTime := time.Now()
 
 		// Create intelligence operator
-		intelligenceOp := i.NewIntelligenceOperator(g.ghc)
+		intelligenceOp := i.NewIntelligenceOperator(g.MainConfig, g.ghc)
 
 		// Generate smart recommendations
 		recommendations, err := intelligenceOp.GenerateSmartRecommendations(context.Background(), owner, repo)

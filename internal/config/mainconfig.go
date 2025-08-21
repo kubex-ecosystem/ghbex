@@ -21,6 +21,7 @@ type MainConfig struct {
 	*defs.Server    `yaml:"server" json:"server"`
 	*defs.GitHub    `yaml:"github" json:"github"`
 	*defs.Notifiers `mapstructure:",squash"`
+	Grompt          defs.Grompt `yaml:"-" json:"-"`
 }
 
 func NewMainConfigObj() interfaces.IMainConfig {
@@ -61,6 +62,12 @@ func NewMainConfig(
 		reportDir = filepath.Join(basePath, reportDir)
 	}
 	configFilePath := GetConfigFilePath(filepath.Join(basePath, "config", "sanitize.yaml"))
+	gromptEngineCfg := defs.NewGromptConfig(
+		GetEnvOrDefault(
+			"GHBEX_GROMPT_CONFIG_PATH",
+			filepath.Join(basePath, "config", "grompt.yaml"),
+		),
+	)
 	return &MainConfig{
 		ConfigFilePath: configFilePath,
 		Runtime:        defs.NewRuntimeType(debug, disableDryRun, reportDir, background),
@@ -111,6 +118,7 @@ func NewMainConfig(
 			defs.NewNotifierType("discord", GetEnvOrDefault("DISCORD_WEBHOOK_URL", "")),
 			defs.NewNotifierType("email", GetEnvOrDefault("EMAIL_SMTP_SERVER", "")),
 		),
+		Grompt: defs.NewPromptEngine(gromptEngineCfg),
 	}
 }
 
