@@ -45,8 +45,3 @@ func CleanReleases(ctx context.Context, cli *github.Client, owner, repo string, 
 
 	return
 }
-
-func deleteRelease(ctx context.Context, cli *github.Client, owner, repo string, id int64) error {
-	_, err := cli.Repositories.DeleteRelease(ctx, owner, repo, id)
-	return err
-}

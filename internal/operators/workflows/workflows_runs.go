@@ -64,8 +64,3 @@ func CleanRuns(ctx context.Context, cli *github.Client, owner, repo string, r in
 
 	return
 }
-
-func deleteRun(ctx context.Context, cli *github.Client, owner, repo string, id int64) error {
-	_, err := cli.Actions.DeleteWorkflowRun(ctx, owner, repo, id)
-	return err
-}
