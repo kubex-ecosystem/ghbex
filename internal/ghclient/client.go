@@ -1,5 +1,5 @@
-// Package client provides a GitHub client with support for both PAT and App authentication.
-package client
+// Package ghclient provides a GitHub client with support for both PAT and App authentication.
+package ghclient
 
 import (
 	"context"

@@ -11,20 +11,21 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/go-github/v61/github"
 
-	githubx "github.com/rafa-mori/ghbex/internal/client"
 	"github.com/rafa-mori/ghbex/internal/config"
 	"github.com/rafa-mori/ghbex/internal/defs/common"
 	"github.com/rafa-mori/ghbex/internal/defs/interfaces"
 	"github.com/rafa-mori/ghbex/internal/frontend"
+	githubx "github.com/rafa-mori/ghbex/internal/ghclient"
 
+	"github.com/rafa-mori/ghbex/internal/defs/notifiers"
 	gl "github.com/rafa-mori/ghbex/internal/module/logger"
-	"github.com/rafa-mori/ghbex/internal/notifiers"
 	"github.com/rafa-mori/ghbex/internal/operators/analytics"
 	"github.com/rafa-mori/ghbex/internal/operators/automation"
 	i "github.com/rafa-mori/ghbex/internal/operators/intelligence"
@@ -191,7 +192,8 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 	gl.Log("info", fmt.Sprintf("Server is starting on %s", bindingAddr))
 	gl.Log("info", fmt.Sprintf("Visit http://localhost:%s to access the dashboard", g.MainConfig.GetServer().GetPort()))
 	gl.Log("info", "Routes:")
-	for path := range routes {
+	sortedRoutes := sortRouteMap(routes)
+	for path := range sortedRoutes {
 		gl.Log("info", fmt.Sprintf("  - %s", path))
 	}
 	gl.Log("info", "Server logs:")
@@ -761,4 +763,20 @@ func isDefaultRules(rules interfaces.IRules) bool {
 	// Check if rules have meaningful non-default values
 	return rules.GetRunsRule().GetMaxAgeDays() <= 0 ||
 		rules.GetArtifactsRule().GetMaxAgeDays() <= 0
+}
+
+func sortRouteMap(routes map[string]http.HandlerFunc) map[string]http.HandlerFunc {
+	keys := make([]string, 0, len(routes))
+	for k := range routes {
+		keys = append(keys, k)
+	}
+
+	sort.Sort(sort.Reverse(sort.StringSlice(keys)))
+
+	// Create a new sorted map
+	sorted := make(map[string]http.HandlerFunc)
+	for _, k := range keys {
+		sorted[k] = routes[k]
+	}
+	return sorted
 }

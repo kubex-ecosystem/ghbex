@@ -13,7 +13,7 @@ import (
 	"github.com/rafa-mori/ghbex/internal/defs/common"
 	"github.com/rafa-mori/ghbex/internal/defs/gitz"
 	"github.com/rafa-mori/ghbex/internal/defs/interfaces"
-	"github.com/rafa-mori/ghbex/internal/notifiers"
+	"github.com/rafa-mori/ghbex/internal/defs/notifiers"
 	artifacts "github.com/rafa-mori/ghbex/internal/operators/artifacts"
 	releases "github.com/rafa-mori/ghbex/internal/operators/releases"
 	sanitize "github.com/rafa-mori/ghbex/internal/operators/sanitize"
