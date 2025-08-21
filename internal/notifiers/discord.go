@@ -8,14 +8,32 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/rafa-mori/ghbex/internal/defs"
+	"github.com/rafa-mori/ghbex/internal/interfaces"
 )
 
 type Discord struct {
 	Webhook string
 }
 
-func (d Discord) Send(ctx context.Context, title, text string, files ...defs.Attachment) error {
+func NewDiscordNotifier(webhook string) interfaces.INotifier {
+	return &Discord{
+		Webhook: webhook,
+	}
+}
+
+func (d *Discord) GetType() string {
+	return "discord"
+}
+
+func (d *Discord) SetWebhook(webhook string) {
+	d.Webhook = webhook
+}
+
+func (d *Discord) GetWebhook() string {
+	return d.Webhook
+}
+
+func (d *Discord) Send(ctx context.Context, title, text string, files ...interfaces.IAttachment) error {
 	if d.Webhook == "" {
 		return nil
 	}
@@ -31,7 +49,21 @@ func (d Discord) Send(ctx context.Context, title, text string, files ...defs.Att
 
 type Stdout struct{}
 
-func (Stdout) Send(ctx context.Context, title, text string, files ...defs.Attachment) error {
+func NewStdoutNotifier() interfaces.INotifier {
+	return &Stdout{}
+}
+
+func (Stdout) GetType() string {
+	return "stdout"
+}
+
+func (Stdout) SetWebhook(webhook string) {}
+
+func (Stdout) GetWebhook() string {
+	return ""
+}
+
+func (Stdout) Send(ctx context.Context, title, text string, files ...interfaces.IAttachment) error {
 	fmt.Printf("\n==== %s ====\n%s\n", title, text)
 	return nil
 }

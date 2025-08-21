@@ -5,10 +5,10 @@ import (
 	"context"
 
 	"github.com/google/go-github/v61/github"
-	"github.com/rafa-mori/ghbex/internal/defs"
+	"github.com/rafa-mori/ghbex/internal/interfaces"
 )
 
-func CleanReleases(ctx context.Context, cli *github.Client, owner, repo string, r defs.ReleasesRule, dry bool) (deletedDrafts int, tags []string, err error) {
+func CleanReleases(ctx context.Context, cli *github.Client, owner, repo string, r interfaces.IReleasesRule, dry bool) (deletedDrafts int, tags []string, err error) {
 	opt := &github.ListOptions{PerPage: 100}
 
 	// If the rule is to delete drafts, we need to paginate through all releases
@@ -21,7 +21,7 @@ func CleanReleases(ctx context.Context, cli *github.Client, owner, repo string, 
 
 		// If there are more pages, we need to fetch them
 		for _, rr := range rel {
-			if rr.GetDraft() && r.DeleteDrafts {
+			if rr.GetDraft() && r.GetDeleteDrafts() {
 				if dry {
 					deletedDrafts++
 					continue

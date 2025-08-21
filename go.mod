@@ -14,6 +14,7 @@ require (
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
@@ -32,7 +33,10 @@ require (
 require (
 	github.com/fatih/color v1.18.0
 	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/rafa-mori/logz v1.3.0
+	github.com/joho/godotenv v1.5.1
+	github.com/rafa-mori/logz v1.4.0
 )
 
 replace github.com/rafa-mori/grompt => ../grompt
+
+replace github.com/rafa-mori/logz => ../logz

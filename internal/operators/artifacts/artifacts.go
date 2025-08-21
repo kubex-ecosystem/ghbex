@@ -5,15 +5,15 @@ import (
 	"context"
 
 	"github.com/google/go-github/v61/github"
-	"github.com/rafa-mori/ghbex/internal/defs"
+	"github.com/rafa-mori/ghbex/internal/interfaces"
 	"github.com/rafa-mori/ghbex/internal/utils"
 )
 
 type IArtifacts interface {
 }
 
-func CleanArtifacts(ctx context.Context, cli *github.Client, owner, repo string, r defs.ArtifactsRule, dry bool) (deleted int, ids []int64, err error) {
-	cut := utils.Cutoff(r.MaxAgeDays)
+func CleanArtifacts(ctx context.Context, cli *github.Client, owner, repo string, r interfaces.IArtifactsRule, dry bool) (deleted int, ids []int64, err error) {
+	cut := utils.Cutoff(r.GetMaxAgeDays())
 	opt := &github.ListOptions{PerPage: 100}
 
 	for {

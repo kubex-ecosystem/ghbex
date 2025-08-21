@@ -6,18 +6,18 @@ import (
 	"slices"
 
 	"github.com/google/go-github/v61/github"
-	"github.com/rafa-mori/ghbex/internal/defs"
+	"github.com/rafa-mori/ghbex/internal/interfaces"
 	"github.com/rafa-mori/ghbex/internal/utils"
 )
 
-func CleanRuns(ctx context.Context, cli *github.Client, owner, repo string, r defs.RunsRule, dry bool) (deleted, kept int, ids []int64, err error) {
+func CleanRuns(ctx context.Context, cli *github.Client, owner, repo string, r interfaces.IRunsRule, dry bool) (deleted, kept int, ids []int64, err error) {
 	opt := &github.ListWorkflowRunsOptions{ListOptions: github.ListOptions{PerPage: 100}}
-	cut := utils.Cutoff(r.MaxAgeDays)
+	cut := utils.Cutoff(r.GetMaxAgeDays())
 	allow := func(name string) bool {
-		if len(r.OnlyWorkflows) == 0 {
+		if len(r.GetOnlyWorkflows()) == 0 {
 			return true
 		}
-		return slices.Contains(r.OnlyWorkflows, name)
+		return slices.Contains(r.GetOnlyWorkflows(), name)
 	}
 
 	// If the rule is to delete runs, we need to paginate through all workflow runs
@@ -37,7 +37,7 @@ func CleanRuns(ctx context.Context, cli *github.Client, owner, repo string, r de
 			ids = append(ids, run.GetID())
 
 			// keep N latest successful
-			if run.GetStatus() == "completed" && run.GetConclusion() == "success" && kept < r.KeepSuccessLast {
+			if run.GetStatus() == "completed" && run.GetConclusion() == "success" && kept < r.GetKeepSuccessLast() {
 				kept++
 				continue
 			}

@@ -1,21 +1,40 @@
-// Package intelligence provides AI-powered analysis and insights for GitHub repositories.
-package intelligence
+// Package specialist provides AI-powered analysis and insights for GitHub repositories.
+package specialist
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"net/http"
+	"os"
 	"time"
 
 	"github.com/google/go-github/v61/github"
-	"github.com/rafa-mori/grompt"
+
+	gl "github.com/rafa-mori/ghbex/internal/module/logger"
 )
 
-// IntelligenceOperator provides AI-powered analysis using Grompt engine
+// GromptRequest represents a request to Grompt server
+type GromptRequest struct {
+	Prompt   string                 `json:"prompt"`
+	Context  map[string]interface{} `json:"context,omitempty"`
+	Model    string                 `json:"model,omitempty"`
+	Provider string                 `json:"provider,omitempty"`
+}
+
+// GromptResponse represents a response from Grompt server
+type GromptResponse struct {
+	Response string `json:"response"`
+	Error    string `json:"error,omitempty"`
+	Success  bool   `json:"success"`
+}
+
+// IntelligenceOperator provides AI-powered analysis using Grompt server
 type IntelligenceOperator struct {
-	client       *github.Client
-	promptEngine grompt.PromptEngine
+	client     *github.Client
+	gromptURL  string
+	httpClient *http.Client
 }
 
 // RepositoryInsight provides quick AI insights for repository cards
@@ -101,42 +120,89 @@ type NextStep struct {
 	Dependencies []string `json:"dependencies"`
 }
 
-// NewIntelligenceOperator creates a new Intelligence operator
-func NewIntelligenceOperator(client *github.Client) *IntelligenceOperator {
-	// Initialize Grompt with basic config
-	config := grompt.DefaultConfig()
-
-	llmMapList := map[string]grompt.APIConfig{
-		"openai":   config.GetAPIConfig("openai"),
-		"claude":   config.GetAPIConfig("claude"),
-		"gemini":   config.GetAPIConfig("gemini"),
-		"chatgpt":  config.GetAPIConfig("chatgpt"),
-		"deepseek": config.GetAPIConfig("deepseek"),
-		"ollama":   config.GetAPIConfig("ollama"),
+// callGromptServer sends a request to Grompt server and returns the AI response
+func (o *IntelligenceOperator) callGromptServer(prompt string, context map[string]interface{}) (string, error) {
+	// Prepare request
+	request := GromptRequest{
+		Prompt:  prompt,
+		Context: context,
 	}
 
-	for name, apiConfig := range llmMapList {
-		if apiConfig != nil {
-			if apiConfig.IsAvailable() {
-				log.Printf("INTELLIGENCE: Using %s API for AI processing", name)
-				if err := config.SetAPIKey(name, config.GetAPIKey(name)); err != nil {
-					log.Printf("INTELLIGENCE: Failed to set API key for %s: %v", name, err)
-				}
-			} else {
-				log.Printf("INTELLIGENCE: %s API is not available, skipping", name)
-			}
-		}
+	// Convert to JSON
+	jsonData, err := json.Marshal(request)
+	if err != nil {
+		return "", fmt.Errorf("error marshaling request: %v", err)
+	}
+
+	// Make HTTP request to Grompt server
+	url := o.gromptURL + "/api/prompt"
+	resp, err := o.httpClient.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", fmt.Errorf("error calling Grompt server: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Parse response
+	var gromptResp GromptResponse
+	if err := json.NewDecoder(resp.Body).Decode(&gromptResp); err != nil {
+		return "", fmt.Errorf("error parsing grompt response: %v", err)
+	}
+
+	// Check for errors
+	if !gromptResp.Success || gromptResp.Error != "" {
+		return "", fmt.Errorf("grompt server error: %s", gromptResp.Error)
+	}
+
+	return gromptResp.Response, nil
+}
+
+// NewIntelligenceOperator creates a new instance that connects to Grompt server
+func NewIntelligenceOperator() (*IntelligenceOperator, error) {
+	// Create GitHub client
+	token := os.Getenv("GITHUB_TOKEN")
+	if token == "" {
+		gl.Log("error", "GITHUB_TOKEN environment variable is not set")
+		return nil, fmt.Errorf("GITHUB_TOKEN is required to connect to GitHub API")
+	}
+
+	var client *github.Client
+	if token != "" {
+		client = github.NewTokenClient(context.Background(), token)
+	} else {
+		client = github.NewClient(nil)
+	}
+
+	// Connect to Grompt server (running on port 8080)
+	gromptURL := os.Getenv("GROMPT_SERVER_URL")
+	if gromptURL == "" {
+		gromptURL = "http://localhost:8080" // Default Grompt server URL
+	}
+
+	httpClient := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	// Test connection to Grompt server
+	testURL := gromptURL + "/health"
+	resp, err := httpClient.Get(testURL)
+	if err != nil {
+		gl.Log("error", fmt.Sprintf("Cannot connect to Grompt server at %s: %v", gromptURL, err))
+		gl.Log("info", "   Make sure Grompt server is running on port 8080")
+	} else {
+		resp.Body.Close()
+		gl.Log("info", fmt.Sprintf("✅ Connected to Grompt server at %s", gromptURL))
 	}
 
 	return &IntelligenceOperator{
-		client:       client,
-		promptEngine: grompt.NewPromptEngine(config),
-	}
+		client:     client,
+		gromptURL:  gromptURL,
+		httpClient: httpClient,
+	}, nil
 }
 
 // GenerateQuickInsight creates AI-powered insights for repository cards
 func (o *IntelligenceOperator) GenerateQuickInsight(ctx context.Context, owner, repo string) (*RepositoryInsight, error) {
-	log.Printf("INTELLIGENCE: Generating quick insight for %s/%s", owner, repo)
+	gl.Log("info", fmt.Sprintf("Generating quick insight for %s/%s", owner, repo))
 
 	// Get basic repository info
 	repoInfo, _, err := o.client.Repositories.Get(ctx, owner, repo)
@@ -147,7 +213,7 @@ func (o *IntelligenceOperator) GenerateQuickInsight(ctx context.Context, owner, 
 	// Generate AI-powered assessment using Grompt
 	aiScore, assessment, err := o.analyzeRepositoryWithAI(ctx, repoInfo)
 	if err != nil {
-		log.Printf("INTELLIGENCE: AI analysis failed, using fallback: %v", err)
+		gl.Log("error", fmt.Sprintf("AI analysis failed, using fallback: %v", err))
 		return o.generateFallbackInsight(owner, repo), nil
 	}
 
@@ -167,7 +233,7 @@ func (o *IntelligenceOperator) GenerateQuickInsight(ctx context.Context, owner, 
 
 // GenerateSmartRecommendations creates contextual AI recommendations
 func (o *IntelligenceOperator) GenerateSmartRecommendations(ctx context.Context, owner, repo string) ([]SmartRecommendation, error) {
-	log.Printf("INTELLIGENCE: Generating smart recommendations for %s/%s", owner, repo)
+	gl.Log("info", fmt.Sprintf("Generating smart recommendations for %s/%s", owner, repo))
 
 	// Get repository data
 	repoInfo, _, err := o.client.Repositories.Get(ctx, owner, repo)
@@ -181,13 +247,13 @@ func (o *IntelligenceOperator) GenerateSmartRecommendations(ctx context.Context,
 		ListOptions: github.ListOptions{PerPage: 10},
 	})
 	if err != nil {
-		log.Printf("INTELLIGENCE: Failed to get issues: %v", err)
+		gl.Log("error", fmt.Sprintf("Failed to get issues: %v", err))
 	}
 
 	// Generate AI recommendations
 	recommendations, err := o.generateAIRecommendations(ctx, repoInfo, issues)
 	if err != nil {
-		log.Printf("INTELLIGENCE: AI recommendations failed, using fallback: %v", err)
+		gl.Log("error", fmt.Sprintf("AI recommendations failed, using fallback: %v", err))
 		return o.generateFallbackRecommendations(owner, repo), nil
 	}
 
@@ -228,10 +294,20 @@ Format your response as JSON:
 		repo.GetUpdatedAt().Format("2006-01-02"),
 	)
 
-	response, err := o.promptEngine.ProcessPrompt(prompt, map[string]interface{}{})
+	gl.Log("info", fmt.Sprintf("🤖 INTELLIGENCE: Sending prompt to Grompt server for %s", repo.GetFullName()))
+	response, err := o.callGromptServer(prompt, map[string]interface{}{
+		"repository": repo.GetFullName(),
+		"language":   repo.GetLanguage(),
+		"stars":      repo.GetStargazersCount(),
+		"forks":      repo.GetForksCount(),
+	})
 	if err != nil {
-		return 0, "", err
+		gl.Log("error", fmt.Sprintf("Grompt server failed: %v", err))
+		gl.Log("info", "Using fallback data")
+		return o.getFallbackQuickInsight(repo)
 	}
+
+	gl.Log("info", fmt.Sprintf("✅ INTELLIGENCE: AI response received: %s", response[:min(100, len(response))]))
 
 	// Parse JSON response
 	var result struct {
@@ -239,9 +315,9 @@ Format your response as JSON:
 		Assessment string  `json:"assessment"`
 	}
 
-	if err := json.Unmarshal([]byte(response.Response), &result); err != nil {
+	if err := json.Unmarshal([]byte(response), &result); err != nil {
 		// Fallback if JSON parsing fails - CLEARLY MARKED AS SIMULATED
-		log.Printf("⚠️  WARNING: AI parsing failed for %s, using simulated data", repo.GetFullName())
+		gl.Log("error", fmt.Sprintf("Failed to parse AI response: %v", err))
 		return 0.0, "⚠️  SIMULATED - AI analysis unavailable", nil
 	}
 
@@ -282,13 +358,19 @@ Provide recommendations as JSON array:
 ]
 `, repo.GetFullName(), repo.GetLanguage(), issuesContext)
 
-	response, err := o.promptEngine.ProcessPrompt(prompt, map[string]interface{}{})
+	response, err := o.callGromptServer(prompt, map[string]interface{}{
+		"repository": repo.GetFullName(),
+		"language":   repo.GetLanguage(),
+		"issues":     issuesContext,
+	})
 	if err != nil {
-		return nil, err
+		gl.Log("error", fmt.Sprintf("Grompt server failed for recommendations: %v", err))
+		gl.Log("info", "Using fallback recommendations")
+		return o.generateFallbackRecommendations(repo.GetOwner().GetLogin(), repo.GetName()), nil
 	}
 
 	var recommendations []SmartRecommendation
-	if err := json.Unmarshal([]byte(response.Response), &recommendations); err != nil {
+	if err := json.Unmarshal([]byte(response), &recommendations); err != nil {
 		// Return fallback recommendations
 		return o.generateFallbackRecommendations(repo.GetOwner().GetLogin(), repo.GetName()), nil
 	}
@@ -302,9 +384,21 @@ Provide recommendations as JSON array:
 	return recommendations, nil
 }
 
+// getFallbackQuickInsight returns simulated data when AI is unavailable
+func (o *IntelligenceOperator) getFallbackQuickInsight(repo *github.Repository) (float64, string, error) {
+	// Return obviously simulated data with transparency warning
+	assessment := fmt.Sprintf("⚠️ SIMULATED DATA - AI analysis unavailable\n\nRepository: %s\nLanguage: %s\nStars: %d\nThis is demonstration data only.",
+		repo.GetFullName(),
+		repo.GetLanguage(),
+		repo.GetStargazersCount(),
+	)
+
+	return 0.0, assessment, nil
+}
+
 // Fallback methods for when AI is not available
 func (o *IntelligenceOperator) generateFallbackInsight(owner, repo string) *RepositoryInsight {
-	log.Printf("⚠️  WARNING: Using SIMULATED data for %s/%s - AI analysis not available", owner, repo)
+	gl.Log("warning", fmt.Sprintf("Using SIMULATED data for %s/%s - AI analysis not available", owner, repo))
 
 	return &RepositoryInsight{
 		RepositoryName:  fmt.Sprintf("%s/%s", owner, repo),
@@ -319,7 +413,7 @@ func (o *IntelligenceOperator) generateFallbackInsight(owner, repo string) *Repo
 }
 
 func (o *IntelligenceOperator) generateFallbackRecommendations(owner, repo string) []SmartRecommendation {
-	log.Printf("⚠️  WARNING: Using SIMULATED recommendations for %s/%s - AI analysis not available", owner, repo)
+	gl.Log("warning", fmt.Sprintf("Using SIMULATED recommendations for %s/%s - AI analysis not available", owner, repo))
 
 	return []SmartRecommendation{
 		{

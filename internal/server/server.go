@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -14,14 +15,15 @@ import (
 
 	"github.com/google/go-github/v61/github"
 	githubx "github.com/rafa-mori/ghbex/internal/client"
-	config "github.com/rafa-mori/ghbex/internal/config"
 	"github.com/rafa-mori/ghbex/internal/defs"
 	"github.com/rafa-mori/ghbex/internal/frontend"
+	"github.com/rafa-mori/ghbex/internal/interfaces"
 	"github.com/rafa-mori/ghbex/internal/manager"
+	gl "github.com/rafa-mori/ghbex/internal/module/logger"
 	"github.com/rafa-mori/ghbex/internal/notifiers"
 	"github.com/rafa-mori/ghbex/internal/operators/analytics"
-	"github.com/rafa-mori/ghbex/internal/operators/productivity"
 	i "github.com/rafa-mori/ghbex/internal/operators/intelligence"
+	"github.com/rafa-mori/ghbex/internal/operators/productivity"
 )
 
 type GHServerEngine interface {
@@ -31,39 +33,54 @@ type GHServerEngine interface {
 }
 
 type ghServerEngine struct {
-	MainConfig config.MainConfig
+	MainConfig interfaces.IMainConfig
 	// ghc Is the GitHub client used for interacting with GitHub APIs.
 	ghc *github.Client
 }
 
-func NewGHServerEngine(cfg config.MainConfig) GHServerEngine {
+func NewGHServerEngine(cfg interfaces.IMainConfig) GHServerEngine {
+	if cfg == nil {
+		gl.Log("fatal", "Failed to create GitHub client: config is nil")
+		return nil
+	}
+	ghc, err := NewGithubClient(context.Background(), cfg)
+	if err != nil {
+		gl.Log("fatal", fmt.Sprintf("Failed to create GitHub client: %v", err))
+	}
 	return &ghServerEngine{
 		MainConfig: cfg,
-		ghc:        nil,
+		ghc:        ghc,
 	}
 }
 
-func NewGithubClient(ctx context.Context, cfg config.MainConfig) (*github.Client, error) {
+func NewGithubClient(ctx context.Context, cfg interfaces.IMainConfig) (*github.Client, error) {
 	var err error
 	var ghc *github.Client
 	gh := cfg.GetGitHub()
-	expandedToken := os.ExpandEnv(gh.Auth.Token)
-	log.Printf("DEBUG: Auth kind: %s, Token template: %s, Expanded token length: %d",
-		gh.Auth.Kind, gh.Auth.Token, len(expandedToken))
-	switch strings.ToLower(gh.Auth.Kind) {
+	if gh.GetAuth() == nil {
+		gl.Log("fatal", "github.auth is not configured in the main config")
+	}
+	gl.Log(
+		"debug",
+		fmt.Sprintf("github.auth.kind: %s, token: %s, base_url: %s, upload_url: %s",
+			gh.GetAuth().GetKind(), gh.GetAuth().GetBaseURL(), gh.GetAuth().GetUploadURL()),
+	)
+
+	switch strings.ToLower(gh.GetAuth().GetKind()) {
 	case "pat":
-		ghc, err = githubx.NewPAT(ctx, githubx.PATConfig{
-			Token:     expandedToken,
-			BaseURL:   gh.Auth.BaseURL,
-			UploadURL: gh.Auth.UploadURL,
-		})
+		pCfg := githubx.PATConfig{
+			Token:     gh.GetAuth().GetToken(),
+			BaseURL:   gh.GetAuth().GetBaseURL(),
+			UploadURL: gh.GetAuth().GetUploadURL(),
+		}
+		ghc, err = githubx.NewPAT(ctx, pCfg)
 	case "app":
 		ghc, err = githubx.NewApp(ctx, githubx.AppConfig{
-			AppID:          gh.Auth.AppID,
-			InstallationID: gh.Auth.InstallationID,
-			PrivateKeyPath: gh.Auth.PrivateKeyPath,
-			BaseURL:        gh.Auth.BaseURL,
-			UploadURL:      gh.Auth.UploadURL,
+			AppID:          gh.GetAuth().GetAppID(),
+			InstallationID: gh.GetAuth().GetInstallationID(),
+			PrivateKeyPath: gh.GetAuth().GetPrivateKeyPath(),
+			BaseURL:        gh.GetAuth().GetBaseURL(),
+			UploadURL:      gh.GetAuth().GetUploadURL(),
 		})
 	default:
 		err = errors.New("github.auth.kind must be pat|app")
@@ -86,14 +103,17 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 	}
 
 	// notifiers
-	var notifierz []defs.INotifiers
-	for _, n := range *g.MainConfig.GetNotifiers() {
-		switch n.Type {
+	notifierz := defs.NewNotifiers()
+	for _, n := range g.MainConfig.GetNotifiers().GetNotifiers() {
+		switch n.GetType() {
+		case "slack":
+			webhook := os.ExpandEnv(n.GetWebhook())
+			notifierz.AddNotifier(notifiers.NewDiscordNotifier(webhook))
 		case "discord":
-			webhook := os.ExpandEnv(n.Webhook)
-			notifierz = append(notifierz, &notifiers.Discord{Webhook: webhook})
+			webhook := os.ExpandEnv(n.GetWebhook())
+			notifierz.AddNotifier(notifiers.NewDiscordNotifier(webhook))
 		case "stdout":
-			notifierz = append(notifierz, &notifiers.Stdout{})
+			notifierz.AddNotifier(notifiers.NewStdoutNotifier())
 		}
 	}
 
@@ -103,24 +123,52 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 		g.MainConfig,
 	)
 
-	// Health check endpoint
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			http.Error(w, "only GET", http.StatusMethodNotAllowed)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		response := map[string]interface{}{
-			"status":       "ok",
-			"version":      "0.0.1",
-			"github_auth":  g.ghc != nil,
-			"config_repos": len(g.MainConfig.GetGitHub().Repos),
-		}
-		_ = json.NewEncoder(w).Encode(response)
-	})
+	routes := getRoutesMap(svc, g)
+
+	bindingAddr := net.JoinHostPort(
+		g.MainConfig.GetServer().GetAddr(),
+		g.MainConfig.GetServer().GetPort(),
+	)
+
+	srv := &http.Server{
+		Addr:              bindingAddr,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+
+	for path, handler := range routes {
+		http.Handle(path, handler)
+	}
+
+	gl.Log("info", fmt.Sprintf("Server is starting on %s", bindingAddr))
+	gl.Log("info", fmt.Sprintf("Visit http://localhost:%s to access the dashboard", g.MainConfig.GetServer().GetPort()))
+	gl.Log("info", "Routes:")
+	for path := range routes {
+		gl.Log("info", fmt.Sprintf("  - %s", path))
+	}
+	gl.Log("info", "Server logs:")
+
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		gl.Log("error", fmt.Sprintf("HTTP server error: %v", err))
+	}
+
+	return nil
+}
+
+func (g *ghServerEngine) Stop(ctx context.Context) error {
+	// Implement stop logic
+	return nil
+}
+
+func (g *ghServerEngine) Status(ctx context.Context) error {
+	// Implement status logic
+	return nil
+}
+
+func getRoutesMap(svc *manager.Service, g *ghServerEngine) map[string]http.HandlerFunc {
+	routes := make(map[string]http.HandlerFunc)
 
 	// Dashboard web interface
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	routes["/"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "only GET", http.StatusMethodNotAllowed)
 			return
@@ -136,8 +184,23 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 		http.NotFound(w, r)
 	})
 
+	// Health check endpoint
+	routes["/health"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "only GET", http.StatusMethodNotAllowed)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		response := make(map[string]any)
+		response["status"] = "ok"
+		response["version"] = "0.0.1"
+		response["github_auth"] = g.ghc != nil
+		response["config_repos"] = len(g.MainConfig.GetGitHub().GetRepos())
+		_ = json.NewEncoder(w).Encode(response)
+	})
+
 	// List configured repositories endpoint
-	http.HandleFunc("/repos", func(w http.ResponseWriter, r *http.Request) {
+	routes["/repos"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "only GET", http.StatusMethodNotAllowed)
 			return
@@ -145,31 +208,31 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 		// Create intelligence operator for AI insights
-		intelligenceOp := i.NewInelligenceOperator(g.ghc)
+		intelligenceOp := i.NewIntelligenceOperator(g.ghc)
 
-		repos := make([]map[string]interface{}, 0)
-		for _, repo := range g.MainConfig.GetGitHub().Repos {
-			repoInfo := map[string]interface{}{
-				"owner": repo.Owner,
-				"name":  repo.Name,
-				"url":   "https://github.com/" + repo.Owner + "/" + repo.Name,
-				"rules": map[string]interface{}{
-					"runs": map[string]interface{}{
-						"max_age_days":      repo.Rules.Runs.MaxAgeDays,
-						"keep_success_last": repo.Rules.Runs.KeepSuccessLast,
+		repos := make([]map[string]any, 0)
+		for _, repo := range g.MainConfig.GetGitHub().GetRepos() {
+			repoInfo := map[string]any{
+				"owner": repo.GetOwner(),
+				"name":  repo.GetName(),
+				"url":   "https://github.com/" + repo.GetOwner() + "/" + repo.GetName(),
+				"rules": map[string]any{
+					"runs": map[string]any{
+						"max_age_days":      repo.GetRules().GetRunsRule().GetMaxAgeDays(),
+						"keep_success_last": repo.GetRules().GetRunsRule().GetKeepSuccessLast(),
 					},
-					"artifacts": map[string]interface{}{
-						"max_age_days": repo.Rules.Artifacts.MaxAgeDays,
+					"artifacts": map[string]any{
+						"max_age_days": repo.GetRules().GetArtifactsRule().GetMaxAgeDays(),
 					},
-					"monitoring": map[string]interface{}{
-						"inactive_days_threshold": repo.Rules.Monitoring.InactiveDaysThreshold,
+					"monitoring": map[string]any{
+						"inactive_days_threshold": repo.GetMonitoring().GetInactiveDaysThreshold(),
 					},
 				},
 			}
 
 			// Add AI insights to each repository card
-			if insight, err := intelligenceOp.GenerateQuickInsight(context.Background(), repo.Owner, repo.Name); err == nil {
-				repoInfo["ai"] = map[string]interface{}{
+			if insight, err := intelligenceOp.GenerateQuickInsight(context.Background(), repo.GetOwner(), repo.GetName()); err == nil {
+				repoInfo["ai"] = map[string]any{
 					"score":       insight.AIScore,
 					"assessment":  insight.QuickAssessment,
 					"health_icon": insight.HealthIcon,
@@ -179,7 +242,7 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 				}
 			} else {
 				// Fallback AI data
-				repoInfo["ai"] = map[string]interface{}{
+				repoInfo["ai"] = map[string]any{
 					"score":       85.0,
 					"assessment":  "Active repository with good development patterns",
 					"health_icon": "🟢",
@@ -192,7 +255,7 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 			repos = append(repos, repoInfo)
 		}
 
-		response := map[string]interface{}{
+		response := map[string]any{
 			"total":        len(repos),
 			"repositories": repos,
 		}
@@ -200,7 +263,7 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 	})
 
 	// Bulk sanitize endpoint for multiple repositories
-	http.HandleFunc("/admin/sanitize/bulk", func(w http.ResponseWriter, r *http.Request) {
+	routes["/admin/sanitize/bulk"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "only POST", http.StatusMethodNotAllowed)
 			return
@@ -209,26 +272,30 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 		dry := r.URL.Query().Get("dry_run")
 		dryRun := dry == "1" || strings.EqualFold(dry, "true")
 
-		var bulkResults []map[string]interface{}
+		var bulkResults []map[string]any
 		totalRuns := 0
 		totalArtifacts := 0
 		startTime := time.Now()
 
-		log.Printf("🚀 BULK SANITIZATION STARTED - DRY_RUN: %v", dryRun)
+		gl.Log("info", fmt.Sprintf("🚀 BULK SANITIZATION STARTED - DRY_RUN: %v", dryRun))
 
-		for _, repoConfig := range g.MainConfig.GetGitHub().Repos {
-			log.Printf("📊 Processing %s/%s...", repoConfig.Owner, repoConfig.Name)
+		for _, repoConfig := range g.MainConfig.GetGitHub().GetRepos() {
+			if repoConfig.GetRules() == nil {
+				gl.Log("info", fmt.Sprintf("📊 Skipping %s/%s - No rules defined", repoConfig.GetOwner(), repoConfig.GetName()))
+				continue
+			}
+			gl.Log("info", fmt.Sprintf("📊 Processing %s/%s...", repoConfig.GetOwner(), repoConfig.GetName()))
 
-			rpt, err := svc.SanitizeRepo(r.Context(), repoConfig.Owner, repoConfig.Name, repoConfig.Rules, dryRun)
+			rpt, err := svc.SanitizeRepo(r.Context(), repoConfig.GetOwner(), repoConfig.GetName(), repoConfig.GetRules(), dryRun)
 			if err != nil {
-				log.Printf("❌ Error processing %s/%s: %v", repoConfig.Owner, repoConfig.Name, err)
+				gl.Log("error", fmt.Sprintf("Error processing %s/%s: %v", repoConfig.GetOwner(), repoConfig.GetName(), err))
 				continue
 			}
 
 			totalRuns += rpt.Runs.Deleted
 			totalArtifacts += rpt.Artifacts.Deleted
 
-			result := map[string]interface{}{
+			result := map[string]any{
 				"owner":     rpt.Owner,
 				"repo":      rpt.Repo,
 				"runs":      rpt.Runs.Deleted,
@@ -238,12 +305,12 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 			}
 			bulkResults = append(bulkResults, result)
 
-			log.Printf("✅ %s/%s - Runs: %d, Artifacts: %d", repoConfig.Owner, repoConfig.Name, rpt.Runs.Deleted, rpt.Artifacts.Deleted)
+			gl.Log("info", fmt.Sprintf("✅ %s/%s - Runs: %d, Artifacts: %d", repoConfig.GetOwner(), repoConfig.GetName(), rpt.Runs.Deleted, rpt.Artifacts.Deleted))
 		}
 
 		duration := time.Since(startTime)
 
-		response := map[string]interface{}{
+		response := map[string]any{
 			"bulk_operation":          true,
 			"dry_run":                 dryRun,
 			"started_at":              startTime.Format("2006-01-02 15:04:05"),
@@ -251,22 +318,22 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 			"total_repos":             len(bulkResults),
 			"total_runs_cleaned":      totalRuns,
 			"total_artifacts_cleaned": totalArtifacts,
-			"productivity_summary": map[string]interface{}{
+			"productivity_summary": map[string]any{
 				"estimated_storage_saved_mb": (totalRuns * 10) + (totalArtifacts * 50), // Estimativa
 				"estimated_time_saved_min":   (totalRuns + totalArtifacts) * 2,         // Estimativa
 			},
 			"repositories": bulkResults,
 		}
 
-		log.Printf("🎉 BULK SANITIZATION COMPLETED - Duration: %v, Total Runs: %d, Total Artifacts: %d",
-			duration, totalRuns, totalArtifacts)
+		gl.Log("info", fmt.Sprintf("🎉 BULK SANITIZATION COMPLETED - Duration: %v, Total Runs: %d, Total Artifacts: %d",
+			duration, totalRuns, totalArtifacts))
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = json.NewEncoder(w).Encode(response)
 	})
 
 	// Analytics endpoint for repository insights
-	http.HandleFunc("/analytics/", func(w http.ResponseWriter, r *http.Request) {
+	routes["/analytics/"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "only GET", http.StatusMethodNotAllowed)
 			return
@@ -290,27 +357,27 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 			}
 		}
 
-		log.Printf("🔍 ANALYTICS REQUEST - %s/%s - Analysis Days: %d", owner, repo, analysisDays)
+		gl.Log("info", fmt.Sprintf("🔍 ANALYTICS REQUEST - %s/%s - Analysis Days: %d", owner, repo, analysisDays))
 		startTime := time.Now()
 
 		// Perform analytics
 		insights, err := analytics.AnalyzeRepository(r.Context(), g.ghc, owner, repo, analysisDays)
 		if err != nil {
-			log.Printf("❌ Analytics error for %s/%s: %v", owner, repo, err)
+			gl.Log("error", fmt.Sprintf("Analytics error for %s/%s: %v", owner, repo, err))
 			http.Error(w, fmt.Sprintf("Analytics failed: %v", err), http.StatusInternalServerError)
 			return
 		}
 
 		duration := time.Since(startTime)
-		log.Printf("✅ ANALYTICS COMPLETED - %s/%s - Duration: %v, Health Score: %.1f (%s)",
-			owner, repo, duration, insights.HealthScore.Overall, insights.HealthScore.Grade)
+		gl.Log("info", fmt.Sprintf("✅ ANALYTICS COMPLETED - %s/%s - Duration: %v, Health Score: %.1f (%s)",
+			owner, repo, duration, insights.HealthScore.Overall, insights.HealthScore.Grade))
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = json.NewEncoder(w).Encode(insights)
 	})
 
 	// route: GET /productivity/{owner}/{repo}
-	http.HandleFunc("/productivity/", func(w http.ResponseWriter, r *http.Request) {
+	routes["/productivity/"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "only GET", http.StatusMethodNotAllowed)
 			return
@@ -325,27 +392,27 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 
 		owner, repo := parts[0], parts[1]
 
-		log.Printf("🚀 PRODUCTIVITY REQUEST - %s/%s", owner, repo)
+		gl.Log("info", fmt.Sprintf("🚀 PRODUCTIVITY REQUEST - %s/%s", owner, repo))
 		startTime := time.Now()
 
 		// Perform productivity analysis
 		report, err := productivity.AnalyzeProductivity(context.Background(), g.ghc, owner, repo)
 		if err != nil {
-			log.Printf("❌ Failed to analyze productivity for %s/%s: %v", owner, repo, err)
+			gl.Log("error", fmt.Sprintf("Failed to analyze productivity for %s/%s: %v", owner, repo, err))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		duration := time.Since(startTime)
-		log.Printf("✅ PRODUCTIVITY COMPLETE - %s/%s - Duration: %v - Actions: %d - ROI: %.1fx",
-			owner, repo, duration, len(report.Actions), report.ROI.ROIRatio)
+		gl.Log("info", fmt.Sprintf("✅ PRODUCTIVITY COMPLETE - %s/%s - Duration: %v - Actions: %d - ROI: %.1fx",
+			owner, repo, duration, len(report.Actions), report.ROI.ROIRatio))
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = json.NewEncoder(w).Encode(report)
 	})
 
 	// route: GET /intelligence/quick/{owner}/{repo}
-	http.HandleFunc("/intelligence/quick/", func(w http.ResponseWriter, r *http.Request) {
+	routes["/intelligence/quick/"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "only GET", http.StatusMethodNotAllowed)
 			return
@@ -360,30 +427,30 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 
 		owner, repo := parts[0], parts[1]
 
-		log.Printf("🧠 AI QUICK INSIGHT REQUEST - %s/%s", owner, repo)
+		gl.Log("info", fmt.Sprintf("🧠 AI QUICK INSIGHT REQUEST - %s/%s", owner, repo))
 		startTime := time.Now()
 
 		// Create intelligence operator
-		intelligenceOp := i.NewInelligenceOperator(g.ghc)
+		intelligenceOp := i.NewIntelligenceOperator(g.ghc)
 
 		// Generate quick insight
 		insight, err := intelligenceOp.GenerateQuickInsight(context.Background(), owner, repo)
 		if err != nil {
-			log.Printf("❌ Failed to generate AI insight for %s/%s: %v", owner, repo, err)
+			gl.Log("error", fmt.Sprintf("Failed to generate AI insight for %s/%s: %v", owner, repo, err))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		duration := time.Since(startTime)
-		log.Printf("✅ AI INSIGHT COMPLETE - %s/%s - Duration: %v - Score: %.1f - Assessment: %s",
-			owner, repo, duration, insight.AIScore, insight.QuickAssessment)
+		gl.Log("info", fmt.Sprintf("✅ AI INSIGHT COMPLETE - %s/%s - Duration: %v - Score: %.1f - Assessment: %s",
+			owner, repo, duration, insight.AIScore, insight.QuickAssessment))
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = json.NewEncoder(w).Encode(insight)
 	})
 
 	// route: GET /intelligence/recommendations/{owner}/{repo}
-	http.HandleFunc("/intelligence/recommendations/", func(w http.ResponseWriter, r *http.Request) {
+	routes["/intelligence/recommendations/"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "only GET", http.StatusMethodNotAllowed)
 			return
@@ -398,30 +465,30 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 
 		owner, repo := parts[0], parts[1]
 
-		log.Printf("🎯 AI RECOMMENDATIONS REQUEST - %s/%s", owner, repo)
+		gl.Log("info", fmt.Sprintf("🎯 AI RECOMMENDATIONS REQUEST - %s/%s", owner, repo))
 		startTime := time.Now()
 
 		// Create intelligence operator
-		intelligenceOp := i.NewInelligenceOperator(g.ghc)
+		intelligenceOp := i.NewIntelligenceOperator(g.ghc)
 
 		// Generate smart recommendations
 		recommendations, err := intelligenceOp.GenerateSmartRecommendations(context.Background(), owner, repo)
 		if err != nil {
-			log.Printf("❌ Failed to generate AI recommendations for %s/%s: %v", owner, repo, err)
+			gl.Log("error", fmt.Sprintf("Failed to generate AI recommendations for %s/%s: %v", owner, repo, err))
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		duration := time.Since(startTime)
-		log.Printf("✅ AI RECOMMENDATIONS COMPLETE - %s/%s - Duration: %v - Count: %d",
-			owner, repo, duration, len(recommendations))
+		gl.Log("info", fmt.Sprintf("✅ AI RECOMMENDATIONS COMPLETE - %s/%s - Duration: %v - Count: %d",
+			owner, repo, duration, len(recommendations)))
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = json.NewEncoder(w).Encode(recommendations)
 	})
 
 	// route: POST /admin/repos/{owner}/{repo}/sanitize?dry_run=1
-	http.HandleFunc("/admin/repos/", func(w http.ResponseWriter, r *http.Request) {
+	routes["/admin/repos/"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "only POST", http.StatusMethodNotAllowed)
 			return
@@ -436,64 +503,49 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 		dry := r.URL.Query().Get("dry_run")
 		dryRun := dry == "1" || strings.EqualFold(dry, "true")
 
-		log.Printf("🎯 INDIVIDUAL SANITIZATION - %s/%s - DRY_RUN: %v", owner, repo, dryRun)
+		gl.Log("info", fmt.Sprintf("🎯 INDIVIDUAL SANITIZATION - %s/%s - DRY_RUN: %v", owner, repo, dryRun))
 		startTime := time.Now()
 
 		// find rules (optional override via cfg)
-		var rules defs.Rules
-		for _, rc := range g.MainConfig.GetGitHub().Repos {
-			if rc.Owner == owner && rc.Name == repo {
-				rules = rc.Rules
+		var rules interfaces.IRules
+		for _, rc := range g.MainConfig.GetGitHub().GetRepos() {
+			if rc.GetOwner() == owner && rc.GetName() == repo {
+				rules = rc.GetRules()
 				break
 			}
 		}
 
-		var dummy defs.Rules
-		dummy.Runs.MaxAgeDays = 30
-		dummy.Artifacts.MaxAgeDays = 7
-		dummy.Releases.DeleteDrafts = true
+		dummy := defs.NewRules(
+			defs.NewRunsRule(30, 0, []string{}),
+			defs.NewArtifactsRule(7),
+			defs.NewReleasesRule(true),
+			defs.NewSecurityRule(false, false, ""),
+			defs.NewMonitoringRule(true, 90, false),
+		)
 
-		if rules.Artifacts == dummy.Artifacts &&
-			rules.Runs.MaxAgeDays == dummy.Runs.MaxAgeDays &&
-			rules.Releases == dummy.Releases {
+		if rules.GetArtifactsRule() == dummy.GetArtifactsRule() &&
+			rules.GetRunsRule().GetMaxAgeDays() == dummy.GetRunsRule().GetMaxAgeDays() &&
+			rules.GetReleasesRule() == dummy.GetReleasesRule() {
 			// default sane rules
-			rules.Runs.MaxAgeDays = 30
-			rules.Artifacts.MaxAgeDays = 7
-			rules.Releases.DeleteDrafts = true
+			rules.GetRunsRule().SetMaxAgeDays(30)
+			rules.GetArtifactsRule().SetMaxAgeDays(7)
+			rules.GetReleasesRule().SetDeleteDrafts(true)
 		}
 
 		rpt, err := svc.SanitizeRepo(r.Context(), owner, repo, rules, dryRun)
 		if err != nil {
-			log.Printf("❌ Error sanitizing %s/%s: %v", owner, repo, err)
+			gl.Log("error", fmt.Sprintf("❌ Error sanitizing %s/%s: %v", owner, repo, err))
 			http.Error(w, err.Error(), 500)
 			return
 		}
 
 		duration := time.Since(startTime)
-		log.Printf("✅ SANITIZATION COMPLETED - %s/%s - Duration: %v, Runs: %d, Artifacts: %d",
-			owner, repo, duration, rpt.Runs.Deleted, rpt.Artifacts.Deleted)
+		gl.Log("info", fmt.Sprintf("✅ SANITIZATION COMPLETED - %s/%s - Duration: %v, Runs: %d, Artifacts: %d",
+			owner, repo, duration, rpt.Runs.Deleted, rpt.Artifacts.Deleted))
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = json.NewEncoder(w).Encode(rpt)
 	})
 
-	srv := &http.Server{
-		Addr:              g.MainConfig.GetServer().Addr,
-		ReadHeaderTimeout: 5 * time.Second,
-	}
-
-	log.Printf("listening on %s", g.MainConfig.GetServer().Addr)
-	log.Fatal(srv.ListenAndServe())
-
-	return nil
-}
-
-func (g *ghServerEngine) Stop(ctx context.Context) error {
-	// Implement stop logic
-	return nil
-}
-
-func (g *ghServerEngine) Status(ctx context.Context) error {
-	// Implement status logic
-	return nil
+	return routes
 }

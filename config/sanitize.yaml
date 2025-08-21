@@ -1,6 +1,6 @@
 runtime:
   dry_run: true # SEMPRE começamos com dry_run!
-  report_dir: ./_reports
+  report_dir: reports
 
 server:
   addr: ":8088"
