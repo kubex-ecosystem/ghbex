@@ -35,13 +35,22 @@ func NewAPIConfig(configFilePath, provider string) APIConfig {
 	return gmptCfg.GetAPIConfig(provider)
 }
 
-func NewProviders(claudeKey string, openaiKey string, deepseekKey string, ollamaEndpoint string) []Provider {
+func NewProviders(claudeKey string, openaiKey string, deepseekKey string, ollamaEndpoint string, geminiKey string, chatgptKey string, cfg GromptConfig) []Provider {
 	providers := gromptProviders.Initialize(
 		claudeKey,
 		openaiKey,
 		deepseekKey,
 		ollamaEndpoint,
 	)
+	providers = append(providers, gromptProviders.NewProvider("gemini", geminiKey, cfg))
+	providers = append(providers, gromptProviders.NewProvider("chatgpt", chatgptKey, cfg))
 
 	return providers
+}
+func NewProvider(
+	name string,
+	apiKey string,
+	cfg GromptConfig,
+) Provider {
+	return gromptProviders.NewProvider(name, apiKey, cfg)
 }

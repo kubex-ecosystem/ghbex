@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/go-github/v61/github"
@@ -129,36 +130,32 @@ func NewIntelligenceOperator(cfg interfaces.IMainConfig, client *github.Client) 
 		claudeKey,
 		geminiKey,
 	)
-	engine := defs.NewPromptEngine(gromptEngineCfg)
 
-	llmMapList := map[string]defs.APIConfig{
-		"openai":   gromptEngineCfg.GetAPIConfig("openai"),
-		"claude":   gromptEngineCfg.GetAPIConfig("claude"),
-		"gemini":   gromptEngineCfg.GetAPIConfig("gemini"),
-		"chatgpt":  gromptEngineCfg.GetAPIConfig("chatgpt"),
-		"deepseek": gromptEngineCfg.GetAPIConfig("deepseek"),
-		"ollama":   gromptEngineCfg.GetAPIConfig("ollama"),
+	engine := defs.NewGromptEngine(gromptEngineCfg)
+	llmList := []string{
+		"claude",
+		"openai",
+		"deepseek",
+		"ollama",
+		"gemini",
+		"chatgpt",
 	}
-	for key, apiKey := range llmMapList {
-		if apiKey == nil || apiKey.IsDemoMode() {
-			apiFromEnv := configLib.GetEnvOrDefault(
-				key,
-				"",
-			)
-			if apiFromEnv != "" {
-				gl.Log("notice", fmt.Sprintf("Using API key from environment for %s", key))
-				gromptEngineCfg.SetAPIKey(key, apiFromEnv)
-			} else {
-				gl.Log("debug", fmt.Sprintf("No API key configured for %s, using default config", key))
-			}
-		}
+	llmMapList := make(map[string]defs.Provider)
+	for _, provider := range llmList {
+		llmMapList[provider] = defs.NewProvider(
+			provider,
+			configLib.GetEnvOrDefault(
+				strings.ToUpper(provider)+"_API_KEY",
+				gromptEngineCfg.GetAPIKey(provider),
+			),
+			gromptEngineCfg,
+		)
 	}
-	providers := engine.GetProviders()
-	if len(providers) == 0 {
+	if len(llmMapList) == 0 {
 		gl.Log("warn", "INTELLIGENCE: No AI providers configured, using default Grompt settings")
 	} else {
-		gl.Log("info", fmt.Sprintf("INTELLIGENCE: Available AI providers: %d", len(providers)))
-		for _, provider := range providers {
+		gl.Log("info", fmt.Sprintf("INTELLIGENCE: Available AI providers: %d", len(llmMapList)))
+		for _, provider := range llmMapList {
 			gl.Log("info", fmt.Sprintf(" - %s: %v", provider.Name(), provider.GetCapabilities()))
 		}
 	}
