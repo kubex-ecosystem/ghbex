@@ -252,47 +252,26 @@ func getRoutesMap(svc *manager.Service, g *ghServerEngine) map[string]http.Handl
 
 				cfgGh := g.MainConfig.GetGitHub()
 				cfgRepos := cfgGh.GetRepos()
-				cfgReposList := make([]*github.Repository, 0)
+
+				// 🛡️ CRITICAL SECURITY: NEVER scan all repositories universally!
+				// Only use explicitly configured repositories to prevent accidental universe scanning
 				if len(cfgRepos) == 0 {
-					cfgReposRemote, _, cfgReposRemoteErr := g.ghc.Repositories.ListAll(
-						context.Background(),
-						nil,
-					)
-					if cfgReposRemoteErr != nil {
-						gl.Log("error", fmt.Sprintf("Failed to fetch remote repositories: %v", cfgReposRemoteErr))
-						http.Error(w, "Failed to fetch remote repositories", http.StatusInternalServerError)
-						return
-					}
-					if len(cfgReposRemote) > 0 && len(cfgRepos) == 0 {
-						cfgReposList = append(cfgReposList, cfgReposRemote...)
-						for _, repo := range cfgReposList {
-							cfgRepos = append(cfgRepos, defs.NewRepoCfg(
-								repo.GetOwner().GetLogin(),
-								repo.GetName(),
-								defs.NewRules(
-									defs.NewRunsRule(
-										30,
-										7,
-										[]string{"error", "failure", "fail"},
-									),
-									defs.NewArtifactsRule(7),
-									defs.NewReleasesRule(false),
-									defs.NewSecurityRule(
-										false,
-										true,
-										"",
-									),
-									defs.NewMonitoringRule(
-										true,
-										30,
-										true,
-									),
-								),
-							))
+					gl.Log("warning", "🚨 NO REPOSITORIES CONFIGURED - Using EMPTY list for safety")
+					gl.Log("info", "📋 To configure repositories, use:")
+					gl.Log("info", "   • CLI flag: --repos 'owner/repo1,owner/repo2'")
+					gl.Log("info", "   • ENV var: REPO_LIST='owner/repo1,owner/repo2'")
+					gl.Log("info", "   • Config file with explicit repository list")
+					gl.Log("info", "🛡️ This prevents accidental scanning of all GitHub repositories")
+					cfgRepos = make([]interfaces.IRepoCfg, 0)
+				} else {
+					gl.Log("info", fmt.Sprintf("✅ Using %d explicitly configured repositories", len(cfgRepos)))
+					for i, repo := range cfgRepos {
+						if i < 5 { // Log first 5 repos for verification
+							gl.Log("info", fmt.Sprintf("   • %s/%s", repo.GetOwner(), repo.GetName()))
+						} else if i == 5 {
+							gl.Log("info", fmt.Sprintf("   • ... and %d more repositories", len(cfgRepos)-5))
+							break
 						}
-					} else {
-						gl.Log("info", "No repositories configured or found in GitHub account, will use a empty list and wait for user to configure them")
-						cfgRepos = make([]interfaces.IRepoCfg, 0)
 					}
 				}
 

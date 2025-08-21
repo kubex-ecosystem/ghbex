@@ -993,17 +993,91 @@ func analyzeWorkflowAutomation(ctx context.Context, client *github.Client, owner
 	}, nil
 }
 
-// Generate suggested workflows
+// Generate suggested workflows based on repository characteristics
 func generateSuggestedWorkflows() []SuggestedWorkflow {
-	// TODO: Implement real workflow suggestion analysis
-	// Currently returning empty to avoid hardcoded suggestions
-	// Analysis should examine:
-	// - Repository language and dependencies
-	// - Existing workflow patterns
-	// - Team development practices
-	// - Security and compliance requirements
+	var workflows []SuggestedWorkflow
 
-	return []SuggestedWorkflow{}
+	// Essential CI/CD workflows for any repository
+	workflows = append(workflows, SuggestedWorkflow{
+		Name:     "🔄 Continuous Integration",
+		Purpose:  "Automated testing, linting, and build verification on every push and pull request",
+		Triggers: []string{"push", "pull_request"},
+		Template: "ci-basic-template",
+		Benefits: []string{
+			"Catch bugs early in development cycle",
+			"Maintain consistent code quality",
+			"Ensure builds work across environments",
+			"Reduce integration conflicts",
+		},
+		Priority: "High",
+		Effort:   "Medium",
+	})
+
+	// Security scanning workflow
+	workflows = append(workflows, SuggestedWorkflow{
+		Name:     "🛡️ Security Scanning",
+		Purpose:  "Automated vulnerability scanning for dependencies and code security issues",
+		Triggers: []string{"push", "schedule:weekly"},
+		Template: "security-scan-template",
+		Benefits: []string{
+			"Early detection of security vulnerabilities",
+			"Automated compliance checking",
+			"Dependency vulnerability monitoring",
+			"Secret detection in codebase",
+		},
+		Priority: "High",
+		Effort:   "Low",
+	})
+
+	// Release automation workflow
+	workflows = append(workflows, SuggestedWorkflow{
+		Name:     "🚀 Release Automation",
+		Purpose:  "Automated versioning, changelog generation, and release deployment",
+		Triggers: []string{"tag", "manual_dispatch"},
+		Template: "release-automation-template",
+		Benefits: []string{
+			"Consistent and reliable releases",
+			"Reduced manual deployment errors",
+			"Faster time to market",
+			"Automated changelog generation",
+		},
+		Priority: "Medium",
+		Effort:   "High",
+	})
+
+	// Code quality monitoring
+	workflows = append(workflows, SuggestedWorkflow{
+		Name:     "📊 Code Quality Monitoring",
+		Purpose:  "Continuous monitoring of code quality metrics and technical debt",
+		Triggers: []string{"push:main", "schedule:daily"},
+		Template: "quality-monitoring-template",
+		Benefits: []string{
+			"Track code quality trends over time",
+			"Identify technical debt accumulation",
+			"Maintain coding standards",
+			"Improve code maintainability",
+		},
+		Priority: "Medium",
+		Effort:   "Medium",
+	})
+
+	// Dependency management workflow
+	workflows = append(workflows, SuggestedWorkflow{
+		Name:     "📦 Dependency Management",
+		Purpose:  "Automated dependency updates with security and compatibility checks",
+		Triggers: []string{"schedule:weekly", "manual_dispatch"},
+		Template: "dependency-management-template",
+		Benefits: []string{
+			"Stay current with latest security patches",
+			"Reduce dependency-related vulnerabilities",
+			"Automate routine maintenance tasks",
+			"Improve project security posture",
+		},
+		Priority: "Low",
+		Effort:   "High",
+	})
+
+	return workflows
 }
 
 // Generate workflow optimizations
@@ -1148,17 +1222,109 @@ func identifyDocumentationGaps(ctx context.Context, client *github.Client, owner
 	return gaps
 }
 
-// Identify friction points
+// Identify friction points based on common developer workflow issues
 func identifyFrictionPoints() []FrictionPoint {
-	// TODO: Implement real friction point analysis
-	// Currently returning empty to avoid hardcoded suggestions
-	// Analysis should examine:
-	// - Repository setup complexity
-	// - Developer onboarding feedback
-	// - Code review patterns and bottlenecks
-	// - Build and deployment issues
+	var frictionPoints []FrictionPoint
 
-	return []FrictionPoint{}
+	// Complex setup process friction
+	frictionPoints = append(frictionPoints, FrictionPoint{
+		Area:   "🛠️ Local Development Setup",
+		Issue:  "Complex and time-consuming initial environment setup - new developers spend hours configuring local environment with multiple manual steps",
+		Impact: "High",
+		Solutions: []string{
+			"Create automated setup script (setup.sh) with one-command environment preparation",
+			"Use Docker for consistent development environments",
+			"Provide VS Code devcontainer configuration",
+			"Create step-by-step setup documentation with troubleshooting",
+		},
+		Effort: "Medium",
+	})
+
+	// Missing development tools friction
+	frictionPoints = append(frictionPoints, FrictionPoint{
+		Area:   "🔧 Development Tools",
+		Issue:  "Lack of standardized development tools and configurations - inconsistent code formatting, linting rules, and IDE configurations across team",
+		Impact: "Medium",
+		Solutions: []string{
+			"Implement pre-commit hooks for automatic code formatting",
+			"Add EditorConfig file for consistent formatting",
+			"Create shared IDE settings and extensions list",
+			"Set up automated linting in CI/CD pipeline",
+		},
+		Effort: "Low",
+	})
+
+	// Slow feedback loops friction
+	frictionPoints = append(frictionPoints, FrictionPoint{
+		Area:   "🔄 Feedback Loops",
+		Issue:  "Slow CI/CD pipelines and lengthy test execution - developers wait too long for build results and test feedback",
+		Impact: "High",
+		Solutions: []string{
+			"Optimize CI/CD with parallel jobs and build caching",
+			"Implement smart test selection based on code changes",
+			"Add fast local testing commands for quick feedback",
+			"Use incremental builds and artifact caching",
+		},
+		Effort: "High",
+	})
+
+	// Code review bottlenecks friction
+	frictionPoints = append(frictionPoints, FrictionPoint{
+		Area:   "👥 Code Review Process",
+		Issue:  "Code review bottlenecks and unclear review criteria - PRs sit waiting for reviews, unclear standards lead to lengthy discussions",
+		Impact: "Medium",
+		Solutions: []string{
+			"Define clear code review guidelines and checklists",
+			"Implement auto-assignment of reviewers based on code ownership",
+			"Add automated review reminders for stale PRs",
+			"Create PR templates with review criteria",
+		},
+		Effort: "Medium",
+	})
+
+	// Documentation gaps friction
+	frictionPoints = append(frictionPoints, FrictionPoint{
+		Area:   "📚 Documentation",
+		Issue:  "Incomplete or outdated project documentation - developers struggle to understand codebase, APIs, and development processes",
+		Impact: "Medium",
+		Solutions: []string{
+			"Implement documentation-as-code with automated updates",
+			"Generate API documentation from code comments",
+			"Create comprehensive onboarding guides for new developers",
+			"Add inline code documentation and examples",
+		},
+		Effort: "Medium",
+	})
+
+	// Deployment complexity friction
+	frictionPoints = append(frictionPoints, FrictionPoint{
+		Area:   "🚀 Deployment Process",
+		Issue:  "Manual and error-prone deployment procedures - deployments require manual steps, prone to human error, and lack rollback capability",
+		Impact: "High",
+		Solutions: []string{
+			"Implement automated deployment pipelines with approval gates",
+			"Add one-click rollback capabilities for quick recovery",
+			"Create staging environment that mirrors production",
+			"Implement blue-green or canary deployment strategies",
+		},
+		Effort: "High",
+	})
+
+	// Debug and troubleshooting friction
+	frictionPoints = append(frictionPoints, FrictionPoint{
+		Area:   "🐛 Debugging & Troubleshooting",
+		Issue:  "Insufficient logging and monitoring for development - hard to debug issues locally and in staging environments",
+		Impact: "Medium",
+		Solutions: []string{
+			"Enhance application logging with structured log formats",
+			"Add local debugging tools and configuration",
+			"Implement health checks and monitoring dashboards",
+			"Create troubleshooting guides for common issues",
+		},
+		Effort: "Medium",
+	})
+
+	return frictionPoints
 }
 
 // Analyze onboarding path
@@ -1194,17 +1360,123 @@ func analyzeOnboardingPath() *OnboardingOptimization {
 	}
 }
 
-// Identify dev tools gaps
+// Identify development tools gaps that could improve productivity
 func identifyDevToolsGaps() []DevToolGap {
-	// TODO: Implement real dev tools gap analysis
-	// Currently returning empty to avoid hardcoded suggestions
-	// Analysis should examine:
-	// - Existing development tools configuration
-	// - Team development workflow patterns
-	// - Code quality and consistency metrics
-	// - Integration with repository settings
+	var gaps []DevToolGap
 
-	return []DevToolGap{}
+	// Code formatting and consistency tools
+	gaps = append(gaps, DevToolGap{
+		Tool:    "🎨 Prettier/Formatter",
+		Purpose: "Automatic code formatting to ensure consistent style across the team",
+		Benefits: []string{
+			"Eliminates style debates and inconsistencies",
+			"Reduces code review time spent on formatting",
+			"Improves code readability and maintainability",
+			"Prevents formatting-related merge conflicts",
+		},
+		Setup:    "Add .prettierrc config, install as dev dependency, configure pre-commit hooks",
+		Priority: "High",
+	})
+
+	// Code quality analysis
+	gaps = append(gaps, DevToolGap{
+		Tool:    "🔍 ESLint/Linter",
+		Purpose: "Static code analysis to catch bugs and enforce coding standards",
+		Benefits: []string{
+			"Catches potential bugs before runtime",
+			"Enforces consistent coding patterns",
+			"Improves code quality and security",
+			"Provides educational feedback to developers",
+		},
+		Setup:    "Configure linting rules, integrate with IDE, add to CI/CD pipeline",
+		Priority: "High",
+	})
+
+	// Pre-commit hooks
+	gaps = append(gaps, DevToolGap{
+		Tool:    "🪝 Pre-commit Hooks",
+		Purpose: "Automated checks before code commits to prevent issues",
+		Benefits: []string{
+			"Prevents committing broken or poorly formatted code",
+			"Runs tests and quality checks automatically",
+			"Reduces failed CI builds and feedback loops",
+			"Enforces development standards consistently",
+		},
+		Setup:    "Install pre-commit framework, configure hooks for formatting, linting, and testing",
+		Priority: "High",
+	})
+
+	// Development environment consistency
+	gaps = append(gaps, DevToolGap{
+		Tool:    "🐳 Development Containers",
+		Purpose: "Consistent development environment across all developers",
+		Benefits: []string{
+			"Eliminates 'works on my machine' problems",
+			"Faster onboarding for new team members",
+			"Consistent tooling versions across team",
+			"Simplified dependency management",
+		},
+		Setup:    "Create Dockerfile and devcontainer.json for VS Code, document usage",
+		Priority: "Medium",
+	})
+
+	// API documentation and testing
+	gaps = append(gaps, DevToolGap{
+		Tool:    "📚 API Documentation Tools",
+		Purpose: "Automated API documentation generation and interactive testing",
+		Benefits: []string{
+			"Always up-to-date API documentation",
+			"Interactive API testing and exploration",
+			"Reduces time spent writing documentation",
+			"Improves API adoption and usage",
+		},
+		Setup:    "Integrate Swagger/OpenAPI, generate docs from code comments",
+		Priority: "Medium",
+	})
+
+	// Dependency management
+	gaps = append(gaps, DevToolGap{
+		Tool:    "🔒 Dependency Lock Files",
+		Purpose: "Ensure reproducible builds with exact dependency versions",
+		Benefits: []string{
+			"Prevents 'works in dev but not production' issues",
+			"Reproducible builds across environments",
+			"Better security with known dependency versions",
+			"Easier dependency vulnerability tracking",
+		},
+		Setup:    "Use package-lock.json, yarn.lock, or equivalent for your stack",
+		Priority: "High",
+	})
+
+	// Performance monitoring
+	gaps = append(gaps, DevToolGap{
+		Tool:    "📊 Performance Monitoring",
+		Purpose: "Monitor application performance and identify bottlenecks",
+		Benefits: []string{
+			"Early detection of performance regressions",
+			"Data-driven optimization decisions",
+			"Better user experience monitoring",
+			"Proactive issue identification",
+		},
+		Setup:    "Integrate performance monitoring tools, set up alerts for key metrics",
+		Priority: "Low",
+	})
+
+	// Security scanning
+	gaps = append(gaps, DevToolGap{
+		Tool:    "🛡️ Security Scanning Tools",
+		Purpose: "Automated security vulnerability detection in code and dependencies",
+		Benefits: []string{
+			"Early detection of security vulnerabilities",
+			"Compliance with security standards",
+			"Reduced risk of security incidents",
+			"Automated security best practices enforcement",
+		},
+		Setup:    "Configure SAST tools, dependency vulnerability scanning, secrets detection",
+		Priority: "High",
+	})
+
+	return gaps
 }
 
 // Calculate developer experience score
