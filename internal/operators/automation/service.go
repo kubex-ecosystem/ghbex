@@ -1,5 +1,5 @@
-// Package manager provides functionality for managing GitHub repositories.
-package manager
+// Package automation provides functionality for automating GitHub workflows.
+package automation
 
 import (
 	"context"

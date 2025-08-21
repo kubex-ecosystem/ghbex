@@ -22,7 +22,7 @@ import (
 	"github.com/rafa-mori/ghbex/internal/defs/common"
 	"github.com/rafa-mori/ghbex/internal/defs/interfaces"
 	"github.com/rafa-mori/ghbex/internal/frontend"
-	"github.com/rafa-mori/ghbex/internal/manager"
+
 	gl "github.com/rafa-mori/ghbex/internal/module/logger"
 	"github.com/rafa-mori/ghbex/internal/notifiers"
 	"github.com/rafa-mori/ghbex/internal/operators/analytics"
@@ -167,7 +167,7 @@ func (g *ghServerEngine) Start(ctx context.Context) error {
 	}
 
 	// service
-	svc := manager.New(
+	svc := automation.New(
 		g.ghc,
 		g.MainConfig,
 	)
@@ -213,7 +213,7 @@ func (g *ghServerEngine) Status(ctx context.Context) error {
 	return nil
 }
 
-func getRoutesMap(svc *manager.Service, g *ghServerEngine) map[string]http.HandlerFunc {
+func getRoutesMap(svc *automation.Service, g *ghServerEngine) map[string]http.HandlerFunc {
 	routes := make(map[string]http.HandlerFunc)
 	router := http.NewServeMux()
 
