@@ -6,11 +6,19 @@ import (
 	gromptProviders "github.com/rafa-mori/grompt/factory/providers"
 )
 
+type IGrompt = grompt.Grompt
+
 type Grompt = grompt.PromptEngine
 type APIConfig = grompt.APIConfig
+type Capabilities = gromptProviders.Capabilities
 type Provider = gromptProviders.Provider
 type GromptConfig = grompt.Config
 type PromptEngine = grompt.PromptEngine
+
+type GromptResult struct {
+	Score      float64 `json:"score"`
+	Assessment string  `json:"assessment"`
+}
 
 func NewGromptEngine(cfg GromptConfig) Grompt {
 	gmpt := grompt.NewPromptEngine(cfg)

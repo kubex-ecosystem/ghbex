@@ -21,6 +21,7 @@ import (
 type IntelligenceOperator struct {
 	client       *github.Client
 	promptEngine defs.PromptEngine
+	mainConfig   interfaces.IMainConfig
 }
 
 // RepositoryInsight provides quick AI insights for repository cards
@@ -108,6 +109,11 @@ type NextStep struct {
 
 // NewIntelligenceOperator creates a new Intelligence operator
 func NewIntelligenceOperator(cfg interfaces.IMainConfig, client *github.Client) *IntelligenceOperator {
+	if client == nil {
+		gl.Log("error", "INTELLIGENCE: GitHub client is nil, cannot initialize Intelligence operator")
+		return nil
+	}
+
 	// Initialize Grompt with basic config
 	var port,
 		openAIKey,
@@ -115,6 +121,7 @@ func NewIntelligenceOperator(cfg interfaces.IMainConfig, client *github.Client) 
 		ollamaEndpoint,
 		claudeKey,
 		geminiKey string
+
 	port = cfg.GetServer().GetPort()
 	openAIKey = configLib.GetEnvOrDefault("OPENAI_API_KEY", "")
 	deepSeekKey = configLib.GetEnvOrDefault("DEEPSEEK_API_KEY", "")
@@ -174,24 +181,72 @@ func NewIntelligenceOperator(cfg interfaces.IMainConfig, client *github.Client) 
 	return &IntelligenceOperator{
 		client:       client,
 		promptEngine: engine,
+		mainConfig:   cfg,
 	}
 }
 
 // GenerateQuickInsight creates AI-powered insights for repository cards
 func (o *IntelligenceOperator) GenerateQuickInsight(ctx context.Context, owner, repo string) (*RepositoryInsight, error) {
-	gl.Log("info", fmt.Sprintf("INTELLIGENCE: Generating quick insight for %s/%s", owner, repo))
-
-	// Get basic repository info
-	repoInfo, _, err := o.client.Repositories.Get(ctx, owner, repo)
-	if err != nil {
-		return o.generateFallbackInsight(owner, repo), nil
+	if o.mainConfig == nil {
+		gl.Log("error", "INTELLIGENCE: Main configuration is nil, cannot generate quick insight")
+		return nil, fmt.Errorf("main configuration is nil")
 	}
 
+	gl.Log("debug", fmt.Sprintf("INTELLIGENCE: Generating quick insight for %s/%s", owner, repo))
 	// Generate AI-powered assessment using Grompt
+	var repoInfo *github.Repository
+	var repoInfoResponse *github.Response
+	var err error
+	if owner == "" || repo == "" {
+		var reposInfo []*github.Repository
+		reposInfo, repoInfoResponse, err = o.client.Repositories.ListByAuthenticatedUser(
+			ctx,
+			&github.RepositoryListByAuthenticatedUserOptions{
+				Visibility:  "all",
+				Affiliation: "owner",
+				Type:        "owner",
+			},
+		)
+		if err != nil {
+			gl.Log("error", fmt.Sprintf("INTELLIGENCE: error getting repositories for authenticated user: %v", err))
+			return nil, fmt.Errorf("error getting repositories for authenticated user: %w", err)
+		}
+		if len(reposInfo) == 0 {
+			gl.Log("warn", fmt.Sprintf("INTELLIGENCE: No repositories found for authenticated user"))
+			return nil, fmt.Errorf("no repositories found for authenticated user")
+		}
+		if len(reposInfo) > 0 {
+			repoInfo = reposInfo[0] // Just take the first one for quick insight
+		}
+	} else {
+		repoInfo, repoInfoResponse, err = o.client.Repositories.Get(
+			ctx,
+			owner,
+			repo,
+		)
+	}
+	if err != nil && repoInfo == nil {
+		gl.Log("error", fmt.Sprintf("INTELLIGENCE: error getting quick repository (%s/%s) info: %v", owner, repo, err))
+		return nil, fmt.Errorf("error getting quick repository info: %w", err)
+	}
+	if repoInfoResponse == nil || repoInfoResponse.StatusCode != 200 {
+		gl.Log("warn", fmt.Sprintf("INTELLIGENCE: Repository %s/%s - %d: %s", owner, repo, repoInfoResponse.StatusCode, repoInfoResponse.Status))
+		return nil, fmt.Errorf("repository not found: %s/%s", owner, repo)
+	}
+	if repoInfo == nil {
+		gl.Log("warn", fmt.Sprintf("INTELLIGENCE: Repository %s/%s not found", owner, repo))
+		return nil, fmt.Errorf("repository not found: %s/%s", owner, repo)
+	}
+
 	aiScore, assessment, err := o.analyzeRepositoryWithAI(ctx, repoInfo)
 	if err != nil {
 		gl.Log("error", fmt.Sprintf("INTELLIGENCE: AI analysis failed, using fallback: %v", err))
 		return o.generateFallbackInsight(owner, repo), nil
+	}
+	if aiScore <= 0.0 {
+		gl.Log("warn", fmt.Sprintf("INTELLIGENCE: AI analysis returned non-positive score for %s/%s, using fallback", owner, repo))
+	} else {
+		gl.Log("info", fmt.Sprintf("INTELLIGENCE: AI analysis score for %s/%s: %.2f", owner, repo, aiScore))
 	}
 
 	insight := &RepositoryInsight{
@@ -210,13 +265,24 @@ func (o *IntelligenceOperator) GenerateQuickInsight(ctx context.Context, owner, 
 
 // GenerateSmartRecommendations creates contextual AI recommendations
 func (o *IntelligenceOperator) GenerateSmartRecommendations(ctx context.Context, owner, repo string) ([]SmartRecommendation, error) {
-	gl.Log("info", fmt.Sprintf("INTELLIGENCE: Generating smart recommendations for %s/%s", owner, repo))
+	gl.Log("debug", fmt.Sprintf("INTELLIGENCE: Generating smart recommendations for %s/%s", owner, repo))
 
 	// Get repository data
-	repoInfo, _, err := o.client.Repositories.Get(ctx, owner, repo)
+	repoInfo, repoInfoResponse, err := o.client.Repositories.Get(ctx, owner, repo)
 	if err != nil {
-		return o.generateFallbackRecommendations(owner, repo), nil
+		gl.Log("error", fmt.Sprintf("INTELLIGENCE: error getting smart repository info: %v", err))
+		return nil, fmt.Errorf("error getting smart repository info: %w", err)
 	}
+	if repoInfoResponse == nil || repoInfoResponse.StatusCode == 404 {
+		gl.Log("warn", fmt.Sprintf("INTELLIGENCE: Repository %s/%s not found", owner, repo))
+		return nil, fmt.Errorf("repository not found: %s/%s", owner, repo)
+	}
+	if repoInfo == nil {
+		gl.Log("warn", fmt.Sprintf("INTELLIGENCE: Repository %s/%s not found", owner, repo))
+		return nil, fmt.Errorf("repository not found: %s/%s", owner, repo)
+	}
+
+	gl.Log("info", fmt.Sprintf("INTELLIGENCE: Generating smart recommendations for %s/%s", owner, repo))
 
 	// Get recent issues and PRs for context
 	issues, _, err := o.client.Issues.ListByRepo(ctx, owner, repo, &github.IssueListByRepoOptions{
@@ -280,22 +346,50 @@ Format your response as JSON:
 		repo.GetCreatedAt().Format("2006-01-02"),
 		repo.GetUpdatedAt().Format("2006-01-02"),
 	)
-
-	response, err := o.promptEngine.ProcessPrompt(prompt, map[string]interface{}{})
-	if err != nil {
-		return 0, "", err
+	if o.promptEngine == nil {
+		return 0.0, "⚠️  SIMULATED - AI analysis unavailable", fmt.Errorf("prompt engine not initialized")
 	}
 
-	// Parse JSON response
-	var result struct {
-		Score      float64 `json:"score"`
-		Assessment string  `json:"assessment"`
+	llmProviders := o.promptEngine.GetProviders()
+	if len(llmProviders) == 0 {
+		return 0.0, "⚠️  SIMULATED - AI analysis unavailable", fmt.Errorf("no LLM providers available")
 	}
+
+	// Use the first available provider for simplicity
+	provider := getBetterAvailableProvider(llmProviders, &defs.Capabilities{}, repo, prompt)
+
+	providerResponse, providerErr := provider.Execute(
+		prompt,
+	)
+	if providerErr != nil {
+		gl.Log("error", fmt.Sprintf("INTELLIGENCE: AI provider execution failed: %v", providerErr))
+		return 0, "", nil
+	}
+	if providerResponse == "" {
+		gl.Log("warn", "INTELLIGENCE: AI provider returned empty response, using simulated data")
+		return 0, "Provider returned empty response", nil
+	}
+
+	// Parse the AI response
+	var response struct {
+		Response string `json:"response"`
+	}
+	if err := json.Unmarshal([]byte(providerResponse), &response); err != nil {
+		gl.Log("warn", fmt.Sprintf("AI response parsing failed for %s, using simulated data", repo.GetFullName()))
+		return 0, "AI parsing failed", nil
+	}
+	if response.Response == "" {
+		gl.Log("warn", fmt.Sprintf("AI response is empty for %s", repo.GetFullName()))
+		return 0, "AI response is empty", nil
+	}
+
+	// Parse the AI result
+	var result defs.GromptResult
 
 	if err := json.Unmarshal([]byte(response.Response), &result); err != nil {
 		// Fallback if JSON parsing fails - CLEARLY MARKED AS SIMULATED
 		gl.Log("warn", fmt.Sprintf("AI parsing failed for %s, using simulated data", repo.GetFullName()))
-		return 0.0, "⚠️  SIMULATED - AI analysis unavailable", nil
+		return 0.0, "AI parsing failed", nil
 	}
 
 	return result.Score, result.Assessment, nil
@@ -462,4 +556,24 @@ func (o *IntelligenceOperator) identifyOpportunity(repo *github.Repository) stri
 	// Simple deterministic selection based on repo characteristics
 	index := (repo.GetStargazersCount() + repo.GetForksCount()) % len(opportunities)
 	return opportunities[index]
+}
+
+func getBetterAvailableProvider(
+	providers []defs.Provider,
+	requiredCapabilities *defs.Capabilities,
+	repository *github.Repository,
+	prompt string,
+) defs.Provider {
+	for _, provider := range providers {
+		if provider.IsAvailable() &&
+			len(prompt) <= provider.GetCapabilities().MaxTokens &&
+			(provider.GetCapabilities().SupportsBatch && requiredCapabilities.SupportsBatch) &&
+			(provider.GetCapabilities().SupportsStreaming && requiredCapabilities.SupportsStreaming) &&
+			(provider.GetCapabilities().Models != nil && len(provider.GetCapabilities().Models) > 0) {
+			gl.Log("info", fmt.Sprintf("Using provider %s for prompt: %s", provider.Name(), prompt))
+			return provider
+		}
+	}
+	gl.Log("warn", fmt.Sprintf("No suitable provider found for prompt: %s", prompt))
+	return nil
 }

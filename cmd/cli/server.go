@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 
 	config "github.com/rafa-mori/ghbex/internal/config"
 	"github.com/rafa-mori/ghbex/internal/interfaces"
@@ -96,8 +95,10 @@ func configServer() *cobra.Command {
 }
 
 func startServer() *cobra.Command {
-	var configFilePath, bindAddr, port, name, reportDir string
+	var configFilePath, bindAddr, port, name, reportDir, owner string
 	var debug, disableDryRun, background bool
+	var repositories []string
+	var cfg *config.MainConfig
 
 	startCmd := &cobra.Command{
 		Use:     "start",
@@ -108,47 +109,60 @@ func startServer() *cobra.Command {
 			"This command initializes the server and starts waiting for help to build prompts.",
 		}, false),
 		Run: func(cmd *cobra.Command, args []string) {
-			var cfg interfaces.IMainConfig
+			// Load configuration from file if provided
+			var err error
+			var cfgI interfaces.IMainConfig
 			if configFilePath == "" {
 				if bindAddr == "" && port == "" {
-					var err error
-					cfg, err = config.LoadFromFile("")
+					cfgI, err = config.LoadFromFile("")
 					if err != nil {
-						log.Fatalf("Failed to load config: %v", err)
+						gl.Log("fatal", fmt.Sprintf("Failed to load config: %v", err))
+					}
+					if cfgI == nil {
+						gl.Log("fatal", "Failed to load configuration")
 					}
 				} else {
 					// Create a new config object with provided flags
-					cfg = config.NewMainConfig(bindAddr, port, reportDir, debug, !disableDryRun, background)
-					// Save the config to a file
-					if err := config.SaveToFile(cfg, ""); err != nil {
-						log.Fatalf("Failed to save config: %v", err)
+					cfgIt, err := config.NewMainConfigType(bindAddr, port, reportDir, owner, repositories, debug, !disableDryRun, background)
+					if err != nil {
+						gl.Log("fatal", fmt.Sprintf("Failed to create new configuration: %v", err))
 					}
+					if cfgIt == nil {
+						gl.Log("fatal", "Failed to create new configuration")
+					}
+					cfgI = cfgIt
+				}
+				if cfgO, ok := cfgI.GetConfigObject().(*config.MainConfig); ok {
+					cfg = cfgO
+				} else {
+					gl.Log("fatal", "Configuration object is not of type MainConfig")
 				}
 			}
 
-			// Start server logic
-			ctx := context.Background()
-			if cfg == nil {
-				log.Fatal("Configuration is nil")
-			}
 			// Initialize the server
 			srv := ghserver.NewGHServerEngine(cfg)
-			// Start the server
-			if err := srv.Start(ctx); err != nil {
-				log.Fatal(err)
+			if srv == nil {
+				gl.Log("fatal", "Failed to initialize server engine")
+			}
+
+			// Start server logic
+			if err := srv.Start(context.Background()); err != nil {
+				gl.Log("fatal", fmt.Sprintf("Failed to start server: %v", err))
 			}
 		},
 	}
 
 	// Define flags for the command
 	startCmd.Flags().StringVarP(&configFilePath, "config", "c", "", "Path to the configuration file")
-	startCmd.Flags().StringVarP(&bindAddr, "host", "H", "", "Host to bind the server")
-	startCmd.Flags().StringVarP(&port, "port", "p", "", "Port to run the server")
-	startCmd.Flags().StringVarP(&name, "name", "n", "Grompt", "Name of the server")
-	startCmd.Flags().StringVarP(&reportDir, "report-dir", "r", "", "Directory to store reports")
+	startCmd.Flags().StringVarP(&bindAddr, "bind", "b", "0.0.0.0", "Address to bind the server (Default: 0.0.0.0)")
+	startCmd.Flags().StringVarP(&port, "port", "p", "8088", "Port to run the server (Default: 8088)")
+	startCmd.Flags().StringVarP(&name, "name", "n", "GHbex", "Name of the server (Default: GHbex)")
+	startCmd.Flags().StringVarP(&owner, "owner", "o", "", "Owner of the server (GitHub username)")
+	startCmd.Flags().StringVarP(&reportDir, "report-dir", "R", "", "Directory to store reports")
+	startCmd.Flags().StringSliceVarP(&repositories, "repos", "r", []string{}, "List of repositories to monitor (format: owner/repo)")
 	startCmd.Flags().BoolVarP(&debug, "debug", "d", false, "Enable debug mode")
 	startCmd.Flags().BoolVarP(&disableDryRun, "disable-dry-run", "D", false, "Disable dry run mode (Default: false - Dry run by default)")
-	startCmd.Flags().BoolVarP(&background, "background", "b", false, "Run in background")
+	startCmd.Flags().BoolVarP(&background, "background", "B", true, "Run in background")
 
 	return startCmd
 }

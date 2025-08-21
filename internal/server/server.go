@@ -9,12 +9,16 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
+
 	"os"
 	"strings"
 	"time"
 
 	"github.com/google/go-github/v61/github"
+
 	githubx "github.com/rafa-mori/ghbex/internal/client"
+	"github.com/rafa-mori/ghbex/internal/config"
 	"github.com/rafa-mori/ghbex/internal/defs"
 	"github.com/rafa-mori/ghbex/internal/frontend"
 	"github.com/rafa-mori/ghbex/internal/interfaces"
@@ -40,10 +44,13 @@ type ghServerEngine struct {
 
 func NewGHServerEngine(cfg interfaces.IMainConfig) GHServerEngine {
 	if cfg == nil {
-		gl.Log("fatal", "Failed to create GitHub client: config is nil")
-		return nil
+		var err error
+		cfg, err = config.NewMainConfigObj()
+		if err != nil {
+			gl.Log("fatal", fmt.Sprintf("Failed to create main config: %v", err))
+		}
 	}
-	ghc, err := NewGithubClient(context.Background(), cfg)
+	ghc, err := NewGithubClientType(context.Background(), cfg)
 	if err != nil {
 		gl.Log("fatal", fmt.Sprintf("Failed to create GitHub client: %v", err))
 	}
@@ -53,10 +60,51 @@ func NewGHServerEngine(cfg interfaces.IMainConfig) GHServerEngine {
 	}
 }
 
+func NewGithubClientType(ctx context.Context, cfg interfaces.IMainConfig) (*github.Client, error) {
+	if cfg == nil {
+		return nil, errors.New("config is nil")
+	}
+	var err error
+	var ghc *github.Client
+	var ghcObj = cfg.GetGitHub()
+	var ghcAuth = ghcObj.GetAuth()
+	switch ghcAuth.GetKind() {
+	case "pat":
+		pCfg := githubx.PATConfig{
+			Token:     ghcAuth.GetToken(),
+			BaseURL:   ghcAuth.GetBaseURL(),
+			UploadURL: ghcAuth.GetUploadURL(),
+		}
+		ghc, err = githubx.NewPAT(ctx, pCfg)
+	case "app":
+		ghc, err = githubx.NewApp(ctx, githubx.AppConfig{
+			AppID:          ghcAuth.GetAppID(),
+			InstallationID: ghcAuth.GetInstallationID(),
+			PrivateKeyPath: ghcAuth.GetPrivateKeyPath(),
+			BaseURL:        ghcAuth.GetBaseURL(),
+			UploadURL:      ghcAuth.GetUploadURL(),
+		})
+	default:
+		err = errors.New("github.auth.kind must be pat|app")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return ghc, nil
+}
+
 func NewGithubClient(ctx context.Context, cfg interfaces.IMainConfig) (*github.Client, error) {
+	if cfg == nil {
+		return nil, errors.New("config is nil")
+	}
 	var err error
 	var ghc *github.Client
 	gh := cfg.GetGitHub()
+	if gh == nil {
+		return nil, errors.New("github configuration is not set in the main config")
+	}
 	if gh.GetAuth() == nil {
 		gl.Log("fatal", "github.auth is not configured in the main config")
 	}
@@ -166,386 +214,499 @@ func (g *ghServerEngine) Status(ctx context.Context) error {
 
 func getRoutesMap(svc *manager.Service, g *ghServerEngine) map[string]http.HandlerFunc {
 	routes := make(map[string]http.HandlerFunc)
+	router := http.NewServeMux()
 
-	// Dashboard web interface
-	routes["/"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			http.Error(w, "only GET", http.StatusMethodNotAllowed)
-			return
-		}
-
-		// Serve dashboard only for root path
-		if r.URL.Path == "/" {
-			frontend.ServeDashboard(w, r)
-			return
-		}
-
-		// For other paths, return 404
-		http.NotFound(w, r)
-	})
-
-	// Health check endpoint
-	routes["/health"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			http.Error(w, "only GET", http.StatusMethodNotAllowed)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		response := make(map[string]any)
-		response["status"] = "ok"
-		response["version"] = "0.0.1"
-		response["github_auth"] = g.ghc != nil
-		response["config_repos"] = len(g.MainConfig.GetGitHub().GetRepos())
-		_ = json.NewEncoder(w).Encode(response)
-	})
-
-	// List configured repositories endpoint
-	routes["/repos"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			http.Error(w, "only GET", http.StatusMethodNotAllowed)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-
-		// Create intelligence operator for AI insights
-		intelligenceOp := i.NewIntelligenceOperator(g.MainConfig, g.ghc)
-
-		repos := make([]map[string]any, 0)
-		for _, repo := range g.MainConfig.GetGitHub().GetRepos() {
-			repoInfo := map[string]any{
-				"owner": repo.GetOwner(),
-				"name":  repo.GetName(),
-				"url":   "https://github.com/" + repo.GetOwner() + "/" + repo.GetName(),
-				"rules": map[string]any{
-					"runs": map[string]any{
-						"max_age_days":      repo.GetRules().GetRunsRule().GetMaxAgeDays(),
-						"keep_success_last": repo.GetRules().GetRunsRule().GetKeepSuccessLast(),
-					},
-					"artifacts": map[string]any{
-						"max_age_days": repo.GetRules().GetArtifactsRule().GetMaxAgeDays(),
-					},
-					"monitoring": map[string]any{
-						"inactive_days_threshold": repo.GetMonitoring().GetInactiveDaysThreshold(),
-					},
-				},
-			}
-
-			// Add AI insights to each repository card
-			if insight, err := intelligenceOp.GenerateQuickInsight(context.Background(), repo.GetOwner(), repo.GetName()); err == nil {
-				repoInfo["ai"] = map[string]any{
-					"score":       insight.AIScore,
-					"assessment":  insight.QuickAssessment,
-					"health_icon": insight.HealthIcon,
-					"main_tag":    insight.MainTag,
-					"risk_level":  insight.RiskLevel,
-					"opportunity": insight.Opportunity,
+	// route: GET /health
+	routes["/health"] = http.HandlerFunc(
+		func() http.HandlerFunc {
+			return func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodGet {
+					http.Error(w, "only GET", http.StatusMethodNotAllowed)
+					return
 				}
-			} else {
-				// Fallback AI data
-				repoInfo["ai"] = map[string]any{
-					"score":       85.0,
-					"assessment":  "Active repository with good development patterns",
-					"health_icon": "🟢",
-					"main_tag":    "Active",
-					"risk_level":  "low",
-					"opportunity": "Performance optimization",
+				w.Header().Set("Content-Type", "application/json; charset=utf-8")
+				response := make(map[string]any)
+				response["status"] = "ok"
+				response["version"] = "0.0.1"
+				response["github_auth"] = g.ghc != nil
+				response["config_repos"] = len(g.MainConfig.GetGitHub().GetRepos())
+				_ = json.NewEncoder(w).Encode(response)
+			}
+		}(),
+	)
+	router.Handle("/health", routes["/health"])
+
+	// route: GET /repos
+	routes["/repos"] = http.HandlerFunc(
+		func() http.HandlerFunc {
+			return func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodGet {
+					http.Error(w, "only GET", http.StatusMethodNotAllowed)
+					return
 				}
+				w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+				// Create intelligence operator for AI insights
+				intelligenceOp := i.NewIntelligenceOperator(g.MainConfig, g.ghc)
+
+				cfgGh := g.MainConfig.GetGitHub()
+				cfgRepos := cfgGh.GetRepos()
+				cfgReposList := make([]*github.Repository, 0)
+				if len(cfgRepos) == 0 {
+					cfgReposRemote, _, cfgReposRemoteErr := g.ghc.Repositories.ListAll(
+						context.Background(),
+						nil,
+					)
+					if cfgReposRemoteErr != nil {
+						gl.Log("error", fmt.Sprintf("Failed to fetch remote repositories: %v", cfgReposRemoteErr))
+						http.Error(w, "Failed to fetch remote repositories", http.StatusInternalServerError)
+						return
+					}
+					if len(cfgReposRemote) > 0 && len(cfgRepos) == 0 {
+						cfgReposList = append(cfgReposList, cfgReposRemote...)
+						for _, repo := range cfgReposList {
+							cfgRepos = append(cfgRepos, defs.NewRepoCfg(
+								repo.GetOwner().GetLogin(),
+								repo.GetName(),
+								defs.NewRules(
+									defs.NewRunsRule(
+										30,
+										7,
+										[]string{"error", "failure", "fail"},
+									),
+									defs.NewArtifactsRule(7),
+									defs.NewReleasesRule(false),
+									defs.NewSecurityRule(
+										false,
+										true,
+										"",
+									),
+									defs.NewMonitoringRule(
+										true,
+										30,
+										true,
+									),
+								),
+							))
+						}
+					} else {
+						gl.Log("info", "No repositories configured or found in GitHub account, will use a empty list and wait for user to configure them")
+						cfgRepos = make([]interfaces.IRepoCfg, 0)
+					}
+				}
+
+				repos := make([]map[string]any, 0)
+				for _, repo := range cfgRepos {
+					repoInfo := map[string]any{
+						"owner": repo.GetOwner(),
+						"name":  repo.GetName(),
+						"url":   "https://github.com/" + repo.GetOwner() + "/" + repo.GetName(),
+						"rules": map[string]any{
+							"runs": map[string]any{
+								"max_age_days":      repo.GetRules().GetRunsRule().GetMaxAgeDays(),
+								"keep_success_last": repo.GetRules().GetRunsRule().GetKeepSuccessLast(),
+							},
+							"artifacts": map[string]any{
+								"max_age_days": repo.GetRules().GetArtifactsRule().GetMaxAgeDays(),
+							},
+							"monitoring": map[string]any{
+								"inactive_days_threshold": repo.GetMonitoring().GetInactiveDaysThreshold(),
+							},
+						},
+					}
+
+					// Add AI insights to each repository card
+					if insight, err := intelligenceOp.GenerateQuickInsight(context.Background(), repoInfo["owner"].(string), repoInfo["name"].(string)); err == nil {
+						repoInfo["ai"] = map[string]any{
+							"score":       insight.AIScore,
+							"assessment":  insight.QuickAssessment,
+							"health_icon": insight.HealthIcon,
+							"main_tag":    insight.MainTag,
+							"risk_level":  insight.RiskLevel,
+							"opportunity": insight.Opportunity,
+						}
+					} else {
+						// Fallback AI data
+						repoInfo["ai"] = map[string]any{
+							"score":       85.0,
+							"assessment":  "Active repository with good development patterns",
+							"health_icon": "🟢",
+							"main_tag":    "Active",
+							"risk_level":  "low",
+							"opportunity": "Performance optimization",
+						}
+					}
+
+					repos = append(repos, repoInfo)
+				}
+
+				response := map[string]any{
+					"total":        len(repos),
+					"repositories": repos,
+				}
+				_ = json.NewEncoder(w).Encode(response)
 			}
+		}(),
+	)
+	router.Handle("/repos", routes["/repos"])
 
-			repos = append(repos, repoInfo)
-		}
+	// route: POST /admin/sanitize/bulk
+	routes["/admin/sanitize/bulk"] = http.HandlerFunc(
+		func() http.HandlerFunc {
+			return func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodPost {
+					http.Error(w, "only POST", http.StatusMethodNotAllowed)
+					return
+				}
 
-		response := map[string]any{
-			"total":        len(repos),
-			"repositories": repos,
-		}
-		_ = json.NewEncoder(w).Encode(response)
-	})
+				dry := r.URL.Query().Get("dry_run")
+				dryRun := dry == "1" || strings.EqualFold(dry, "true")
 
-	// Bulk sanitize endpoint for multiple repositories
-	routes["/admin/sanitize/bulk"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "only POST", http.StatusMethodNotAllowed)
-			return
-		}
+				var bulkResults []map[string]any
+				totalRuns := 0
+				totalArtifacts := 0
+				startTime := time.Now()
 
-		dry := r.URL.Query().Get("dry_run")
-		dryRun := dry == "1" || strings.EqualFold(dry, "true")
+				gl.Log("info", fmt.Sprintf("🚀 BULK SANITIZATION STARTED - DRY_RUN: %v", dryRun))
 
-		var bulkResults []map[string]any
-		totalRuns := 0
-		totalArtifacts := 0
-		startTime := time.Now()
+				for _, repoConfig := range g.MainConfig.GetGitHub().GetRepos() {
+					if repoConfig.GetRules() == nil {
+						gl.Log("info", fmt.Sprintf("📊 Skipping %s/%s - No rules defined", repoConfig.GetOwner(), repoConfig.GetName()))
+						continue
+					}
+					gl.Log("info", fmt.Sprintf("📊 Processing %s/%s...", repoConfig.GetOwner(), repoConfig.GetName()))
 
-		gl.Log("info", fmt.Sprintf("🚀 BULK SANITIZATION STARTED - DRY_RUN: %v", dryRun))
+					rpt, err := svc.SanitizeRepo(r.Context(), repoConfig.GetOwner(), repoConfig.GetName(), repoConfig.GetRules(), dryRun)
+					if err != nil {
+						gl.Log("error", fmt.Sprintf("Error processing %s/%s: %v", repoConfig.GetOwner(), repoConfig.GetName(), err))
+						continue
+					}
 
-		for _, repoConfig := range g.MainConfig.GetGitHub().GetRepos() {
-			if repoConfig.GetRules() == nil {
-				gl.Log("info", fmt.Sprintf("📊 Skipping %s/%s - No rules defined", repoConfig.GetOwner(), repoConfig.GetName()))
-				continue
+					totalRuns += rpt.Runs.Deleted
+					totalArtifacts += rpt.Artifacts.Deleted
+
+					result := map[string]any{
+						"owner":     rpt.Owner,
+						"repo":      rpt.Repo,
+						"runs":      rpt.Runs.Deleted,
+						"artifacts": rpt.Artifacts.Deleted,
+						"releases":  rpt.Releases.DeletedDrafts,
+						"success":   true,
+					}
+					bulkResults = append(bulkResults, result)
+
+					gl.Log("info", fmt.Sprintf("✅ %s/%s - Runs: %d, Artifacts: %d", repoConfig.GetOwner(), repoConfig.GetName(), rpt.Runs.Deleted, rpt.Artifacts.Deleted))
+				}
+
+				duration := time.Since(startTime)
+
+				response := map[string]any{
+					"bulk_operation":          true,
+					"dry_run":                 dryRun,
+					"started_at":              startTime.Format("2006-01-02 15:04:05"),
+					"duration_ms":             duration.Milliseconds(),
+					"total_repos":             len(bulkResults),
+					"total_runs_cleaned":      totalRuns,
+					"total_artifacts_cleaned": totalArtifacts,
+					"productivity_summary": map[string]any{
+						"estimated_storage_saved_mb": (totalRuns * 10) + (totalArtifacts * 50), // Estimativa
+						"estimated_time_saved_min":   (totalRuns + totalArtifacts) * 2,         // Estimativa
+					},
+					"repositories": bulkResults,
+				}
+
+				gl.Log("info", fmt.Sprintf("🎉 BULK SANITIZATION COMPLETED - Duration: %v, Total Runs: %d, Total Artifacts: %d",
+					duration, totalRuns, totalArtifacts))
+
+				w.Header().Set("Content-Type", "application/json; charset=utf-8")
+				_ = json.NewEncoder(w).Encode(response)
 			}
-			gl.Log("info", fmt.Sprintf("📊 Processing %s/%s...", repoConfig.GetOwner(), repoConfig.GetName()))
+		}(),
+	)
+	router.Handle("/admin/sanitize/bulk", routes["/admin/sanitize/bulk"])
 
-			rpt, err := svc.SanitizeRepo(r.Context(), repoConfig.GetOwner(), repoConfig.GetName(), repoConfig.GetRules(), dryRun)
-			if err != nil {
-				gl.Log("error", fmt.Sprintf("Error processing %s/%s: %v", repoConfig.GetOwner(), repoConfig.GetName(), err))
-				continue
+	// route: GET /analytics/{owner}/{repo}
+	routes["/analytics/"] = http.HandlerFunc(
+		func() http.HandlerFunc {
+			return func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodGet {
+					http.Error(w, "only GET", http.StatusMethodNotAllowed)
+					return
+				}
+
+				// Parse path: /analytics/{owner}/{repo}
+				path := strings.TrimPrefix(r.URL.Path, "/analytics/")
+				parts := strings.Split(path, "/")
+				if len(parts) < 2 {
+					http.Error(w, "missing owner/repo in path", http.StatusBadRequest)
+					return
+				}
+
+				owner, repo := parts[0], parts[1]
+
+				// Get analysis days from query param (default 90)
+				analysisDays := 90
+				if days := r.URL.Query().Get("days"); days != "" {
+					if parsed, err := time.ParseDuration(days + "h"); err == nil {
+						analysisDays = int(parsed.Hours() / 24)
+					}
+				}
+
+				gl.Log("info", fmt.Sprintf("🔍 ANALYTICS REQUEST - %s/%s - Analysis Days: %d", owner, repo, analysisDays))
+				startTime := time.Now()
+
+				// Perform analytics
+				insights, err := analytics.AnalyzeRepository(r.Context(), g.ghc, owner, repo, analysisDays)
+				if err != nil {
+					gl.Log("error", fmt.Sprintf("Analytics error for %s/%s: %v", owner, repo, err))
+					http.Error(w, fmt.Sprintf("Analytics failed: %v", err), http.StatusInternalServerError)
+					return
+				}
+
+				duration := time.Since(startTime)
+				gl.Log("info", fmt.Sprintf("✅ ANALYTICS COMPLETED - %s/%s - Duration: %v, Health Score: %.1f (%s)",
+					owner, repo, duration, insights.HealthScore.Overall, insights.HealthScore.Grade))
+
+				w.Header().Set("Content-Type", "application/json; charset=utf-8")
+				_ = json.NewEncoder(w).Encode(insights)
 			}
-
-			totalRuns += rpt.Runs.Deleted
-			totalArtifacts += rpt.Artifacts.Deleted
-
-			result := map[string]any{
-				"owner":     rpt.Owner,
-				"repo":      rpt.Repo,
-				"runs":      rpt.Runs.Deleted,
-				"artifacts": rpt.Artifacts.Deleted,
-				"releases":  rpt.Releases.DeletedDrafts,
-				"success":   true,
-			}
-			bulkResults = append(bulkResults, result)
-
-			gl.Log("info", fmt.Sprintf("✅ %s/%s - Runs: %d, Artifacts: %d", repoConfig.GetOwner(), repoConfig.GetName(), rpt.Runs.Deleted, rpt.Artifacts.Deleted))
-		}
-
-		duration := time.Since(startTime)
-
-		response := map[string]any{
-			"bulk_operation":          true,
-			"dry_run":                 dryRun,
-			"started_at":              startTime.Format("2006-01-02 15:04:05"),
-			"duration_ms":             duration.Milliseconds(),
-			"total_repos":             len(bulkResults),
-			"total_runs_cleaned":      totalRuns,
-			"total_artifacts_cleaned": totalArtifacts,
-			"productivity_summary": map[string]any{
-				"estimated_storage_saved_mb": (totalRuns * 10) + (totalArtifacts * 50), // Estimativa
-				"estimated_time_saved_min":   (totalRuns + totalArtifacts) * 2,         // Estimativa
-			},
-			"repositories": bulkResults,
-		}
-
-		gl.Log("info", fmt.Sprintf("🎉 BULK SANITIZATION COMPLETED - Duration: %v, Total Runs: %d, Total Artifacts: %d",
-			duration, totalRuns, totalArtifacts))
-
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		_ = json.NewEncoder(w).Encode(response)
-	})
-
-	// Analytics endpoint for repository insights
-	routes["/analytics/"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			http.Error(w, "only GET", http.StatusMethodNotAllowed)
-			return
-		}
-
-		// Parse path: /analytics/{owner}/{repo}
-		path := strings.TrimPrefix(r.URL.Path, "/analytics/")
-		parts := strings.Split(path, "/")
-		if len(parts) < 2 {
-			http.Error(w, "missing owner/repo in path", http.StatusBadRequest)
-			return
-		}
-
-		owner, repo := parts[0], parts[1]
-
-		// Get analysis days from query param (default 90)
-		analysisDays := 90
-		if days := r.URL.Query().Get("days"); days != "" {
-			if parsed, err := time.ParseDuration(days + "h"); err == nil {
-				analysisDays = int(parsed.Hours() / 24)
-			}
-		}
-
-		gl.Log("info", fmt.Sprintf("🔍 ANALYTICS REQUEST - %s/%s - Analysis Days: %d", owner, repo, analysisDays))
-		startTime := time.Now()
-
-		// Perform analytics
-		insights, err := analytics.AnalyzeRepository(r.Context(), g.ghc, owner, repo, analysisDays)
-		if err != nil {
-			gl.Log("error", fmt.Sprintf("Analytics error for %s/%s: %v", owner, repo, err))
-			http.Error(w, fmt.Sprintf("Analytics failed: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		duration := time.Since(startTime)
-		gl.Log("info", fmt.Sprintf("✅ ANALYTICS COMPLETED - %s/%s - Duration: %v, Health Score: %.1f (%s)",
-			owner, repo, duration, insights.HealthScore.Overall, insights.HealthScore.Grade))
-
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		_ = json.NewEncoder(w).Encode(insights)
-	})
+		}(),
+	)
+	router.Handle("/analytics/", routes["/analytics/"])
 
 	// route: GET /productivity/{owner}/{repo}
-	routes["/productivity/"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			http.Error(w, "only GET", http.StatusMethodNotAllowed)
-			return
-		}
+	routes["/productivity/"] = http.HandlerFunc(
+		func() http.HandlerFunc {
+			return func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodGet {
+					http.Error(w, "only GET", http.StatusMethodNotAllowed)
+					return
+				}
 
-		path := strings.TrimPrefix(r.URL.Path, "/productivity/")
-		parts := strings.Split(path, "/")
-		if len(parts) < 2 {
-			http.Error(w, "missing owner/repo in path", http.StatusBadRequest)
-			return
-		}
+				path := strings.TrimPrefix(r.URL.Path, "/productivity/")
+				parts := strings.Split(path, "/")
+				if len(parts) < 2 {
+					http.Error(w, "missing owner/repo in path", http.StatusBadRequest)
+					return
+				}
 
-		owner, repo := parts[0], parts[1]
+				owner, repo := parts[0], parts[1]
 
-		gl.Log("info", fmt.Sprintf("🚀 PRODUCTIVITY REQUEST - %s/%s", owner, repo))
-		startTime := time.Now()
+				gl.Log("info", fmt.Sprintf("🚀 PRODUCTIVITY REQUEST - %s/%s", owner, repo))
+				startTime := time.Now()
 
-		// Perform productivity analysis
-		report, err := productivity.AnalyzeProductivity(context.Background(), g.ghc, owner, repo)
-		if err != nil {
-			gl.Log("error", fmt.Sprintf("Failed to analyze productivity for %s/%s: %v", owner, repo, err))
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+				// Perform productivity analysis
+				report, err := productivity.AnalyzeProductivity(context.Background(), g.ghc, owner, repo)
+				if err != nil {
+					gl.Log("error", fmt.Sprintf("Failed to analyze productivity for %s/%s: %v", owner, repo, err))
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
 
-		duration := time.Since(startTime)
-		gl.Log("info", fmt.Sprintf("✅ PRODUCTIVITY COMPLETE - %s/%s - Duration: %v - Actions: %d - ROI: %.1fx",
-			owner, repo, duration, len(report.Actions), report.ROI.ROIRatio))
+				duration := time.Since(startTime)
+				gl.Log("info", fmt.Sprintf("✅ PRODUCTIVITY COMPLETE - %s/%s - Duration: %v - Actions: %d - ROI: %.1fx",
+					owner, repo, duration, len(report.Actions), report.ROI.ROIRatio))
 
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		_ = json.NewEncoder(w).Encode(report)
-	})
+				w.Header().Set("Content-Type", "application/json; charset=utf-8")
+				_ = json.NewEncoder(w).Encode(report)
+			}
+		}(),
+	)
+	router.Handle("/productivity/", routes["/productivity/"])
 
 	// route: GET /intelligence/quick/{owner}/{repo}
-	routes["/intelligence/quick/"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			http.Error(w, "only GET", http.StatusMethodNotAllowed)
-			return
-		}
+	routes["/intelligence/quick/"] = http.HandlerFunc(
+		func() http.HandlerFunc {
+			return func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodGet {
+					http.Error(w, "only GET", http.StatusMethodNotAllowed)
+					return
+				}
 
-		path := strings.TrimPrefix(r.URL.Path, "/intelligence/quick/")
-		parts := strings.Split(path, "/")
-		if len(parts) < 2 {
-			http.Error(w, "missing owner/repo in path", http.StatusBadRequest)
-			return
-		}
+				urlPath, pathErr := url.Parse(r.URL.Path)
+				if pathErr != nil {
+					http.Error(w, "failed to unescape path", http.StatusBadRequest)
+					return
+				}
+				path := urlPath.Path
+				parts := strings.Split(strings.TrimPrefix(path, "/intelligence/quick/"), "/")
+				if len(parts) < 2 {
+					http.Error(w, "missing owner/repo in path", http.StatusBadRequest)
+					return
+				} else if len(parts) > 2 {
+					http.Error(w, "too many segments in path", http.StatusBadRequest)
+					return
+				}
 
-		owner, repo := parts[0], parts[1]
+				if len(parts[0]) < 3 || len(parts[1]) < 3 {
+					gl.Log("error", "owner and repo must be provided")
+					http.Error(w, "owner and repo must be provided", http.StatusBadRequest)
+					return
+				}
+				if strings.Contains(parts[0], "/") || strings.Contains(parts[1], "/") {
+					gl.Log("error", "owner and repo must not contain slashes")
+					http.Error(w, "owner and repo must not contain slashes", http.StatusBadRequest)
+					return
+				}
+				if strings.Contains(parts[0], " ") || strings.Contains(parts[1], " ") {
+					gl.Log("error", "owner and repo must not contain spaces")
+					http.Error(w, "owner and repo must not contain spaces", http.StatusBadRequest)
+					return
+				}
+				if strings.Contains(parts[0], ";") || strings.Contains(parts[1], ";") {
+					gl.Log("error", "owner and repo must not contain semicolons")
+					http.Error(w, "owner and repo must not contain semicolons", http.StatusBadRequest)
+					return
+				}
+				owner, repo := parts[0], parts[1]
 
-		gl.Log("info", fmt.Sprintf("🧠 AI QUICK INSIGHT REQUEST - %s/%s", owner, repo))
-		startTime := time.Now()
+				gl.Log("info", fmt.Sprintf("🧠 AI QUICK INSIGHT REQUEST - %s/%s", owner, repo))
+				startTime := time.Now()
 
-		// Create intelligence operator
-		intelligenceOp := i.NewIntelligenceOperator(g.MainConfig, g.ghc)
+				// Create intelligence operator
+				intelligenceOp := i.NewIntelligenceOperator(g.MainConfig, g.ghc)
 
-		// Generate quick insight
-		insight, err := intelligenceOp.GenerateQuickInsight(context.Background(), owner, repo)
-		if err != nil {
-			gl.Log("error", fmt.Sprintf("Failed to generate AI insight for %s/%s: %v", owner, repo, err))
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+				// Generate quick insight
+				insight, err := intelligenceOp.GenerateQuickInsight(context.Background(), owner, repo)
+				if err != nil {
+					gl.Log("error", fmt.Sprintf("Failed to generate AI insight for %s/%s: %v", owner, repo, err))
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
 
-		duration := time.Since(startTime)
-		gl.Log("info", fmt.Sprintf("✅ AI INSIGHT COMPLETE - %s/%s - Duration: %v - Score: %.1f - Assessment: %s",
-			owner, repo, duration, insight.AIScore, insight.QuickAssessment))
+				duration := time.Since(startTime)
+				gl.Log("info", fmt.Sprintf("✅ AI INSIGHT COMPLETE - %s/%s - Duration: %v - Score: %.1f - Assessment: %s",
+					owner, repo, duration, insight.AIScore, insight.QuickAssessment))
 
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		_ = json.NewEncoder(w).Encode(insight)
-	})
+				w.Header().Set("Content-Type", "application/json; charset=utf-8")
+				_ = json.NewEncoder(w).Encode(insight)
+			}
+		}(),
+	)
+	router.Handle("/intelligence/quick/", routes["/intelligence/quick/"])
 
 	// route: GET /intelligence/recommendations/{owner}/{repo}
-	routes["/intelligence/recommendations/"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			http.Error(w, "only GET", http.StatusMethodNotAllowed)
-			return
-		}
+	routes["/intelligence/recommendations/"] = http.HandlerFunc(
+		func() http.HandlerFunc {
+			return func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodGet {
+					http.Error(w, "only GET", http.StatusMethodNotAllowed)
+					return
+				}
 
-		path := strings.TrimPrefix(r.URL.Path, "/intelligence/recommendations/")
-		parts := strings.Split(path, "/")
-		if len(parts) < 2 {
-			http.Error(w, "missing owner/repo in path", http.StatusBadRequest)
-			return
-		}
+				path := strings.TrimPrefix(r.URL.Path, "/intelligence/recommendations/")
+				parts := strings.Split(path, "/")
+				if len(parts) < 2 {
+					http.Error(w, "missing owner/repo in path", http.StatusBadRequest)
+					return
+				}
 
-		owner, repo := parts[0], parts[1]
+				owner, repo := parts[0], parts[1]
 
-		gl.Log("info", fmt.Sprintf("🎯 AI RECOMMENDATIONS REQUEST - %s/%s", owner, repo))
-		startTime := time.Now()
+				gl.Log("info", fmt.Sprintf("🎯 AI RECOMMENDATIONS REQUEST - %s/%s", owner, repo))
+				startTime := time.Now()
 
-		// Create intelligence operator
-		intelligenceOp := i.NewIntelligenceOperator(g.MainConfig, g.ghc)
+				// Create intelligence operator
+				intelligenceOp := i.NewIntelligenceOperator(g.MainConfig, g.ghc)
 
-		// Generate smart recommendations
-		recommendations, err := intelligenceOp.GenerateSmartRecommendations(context.Background(), owner, repo)
-		if err != nil {
-			gl.Log("error", fmt.Sprintf("Failed to generate AI recommendations for %s/%s: %v", owner, repo, err))
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+				// Generate smart recommendations
+				recommendations, err := intelligenceOp.GenerateSmartRecommendations(context.Background(), owner, repo)
+				if err != nil {
+					gl.Log("error", fmt.Sprintf("Failed to generate AI recommendations for %s/%s: %v", owner, repo, err))
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
 
-		duration := time.Since(startTime)
-		gl.Log("info", fmt.Sprintf("✅ AI RECOMMENDATIONS COMPLETE - %s/%s - Duration: %v - Count: %d",
-			owner, repo, duration, len(recommendations)))
+				duration := time.Since(startTime)
+				gl.Log("info", fmt.Sprintf("✅ AI RECOMMENDATIONS COMPLETE - %s/%s - Duration: %v - Count: %d",
+					owner, repo, duration, len(recommendations)))
 
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		_ = json.NewEncoder(w).Encode(recommendations)
-	})
+				w.Header().Set("Content-Type", "application/json; charset=utf-8")
+				_ = json.NewEncoder(w).Encode(recommendations)
+			}
+		}(),
+	)
+	router.Handle("/intelligence/recommendations/", routes["/intelligence/recommendations/"])
 
 	// route: POST /admin/repos/{owner}/{repo}/sanitize?dry_run=1
-	routes["/admin/repos/"] = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "only POST", http.StatusMethodNotAllowed)
-			return
-		}
-		// naive parse
-		parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/admin/repos/"), "/")
-		if len(parts) < 3 || parts[2] != "sanitize" {
-			http.NotFound(w, r)
-			return
-		}
-		owner, repo := parts[0], parts[1]
-		dry := r.URL.Query().Get("dry_run")
-		dryRun := dry == "1" || strings.EqualFold(dry, "true")
+	routes["/admin/repos/"] = http.HandlerFunc(
+		func() http.HandlerFunc {
+			return func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodPost {
+					http.Error(w, "only POST", http.StatusMethodNotAllowed)
+					return
+				}
+				// naive parse
+				parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/admin/repos/"), "/")
+				if len(parts) < 3 || parts[2] != "sanitize" {
+					http.NotFound(w, r)
+					return
+				}
+				owner, repo := parts[0], parts[1]
+				dry := r.URL.Query().Get("dry_run")
+				dryRun := dry == "1" || strings.EqualFold(dry, "true")
 
-		gl.Log("info", fmt.Sprintf("🎯 INDIVIDUAL SANITIZATION - %s/%s - DRY_RUN: %v", owner, repo, dryRun))
-		startTime := time.Now()
+				gl.Log("info", fmt.Sprintf("🎯 INDIVIDUAL SANITIZATION - %s/%s - DRY_RUN: %v", owner, repo, dryRun))
+				startTime := time.Now()
 
-		// find rules (optional override via cfg)
-		var rules interfaces.IRules
-		for _, rc := range g.MainConfig.GetGitHub().GetRepos() {
-			if rc.GetOwner() == owner && rc.GetName() == repo {
-				rules = rc.GetRules()
-				break
+				// find rules (optional override via cfg)
+				var rules interfaces.IRules
+				for _, rc := range g.MainConfig.GetGitHub().GetRepos() {
+					if rc.GetOwner() == owner && rc.GetName() == repo {
+						rules = rc.GetRules()
+						break
+					}
+				}
+
+				dummy := defs.NewRules(
+					defs.NewRunsRule(30, 0, []string{}),
+					defs.NewArtifactsRule(7),
+					defs.NewReleasesRule(true),
+					defs.NewSecurityRule(false, false, ""),
+					defs.NewMonitoringRule(true, 90, false),
+				)
+
+				if rules.GetArtifactsRule() == dummy.GetArtifactsRule() &&
+					rules.GetRunsRule().GetMaxAgeDays() == dummy.GetRunsRule().GetMaxAgeDays() &&
+					rules.GetReleasesRule() == dummy.GetReleasesRule() {
+					// default sane rules
+					rules.GetRunsRule().SetMaxAgeDays(30)
+					rules.GetArtifactsRule().SetMaxAgeDays(7)
+					rules.GetReleasesRule().SetDeleteDrafts(true)
+				}
+
+				rpt, err := svc.SanitizeRepo(r.Context(), owner, repo, rules, dryRun)
+				if err != nil {
+					gl.Log("error", fmt.Sprintf("❌ Error sanitizing %s/%s: %v", owner, repo, err))
+					http.Error(w, err.Error(), 500)
+					return
+				}
+
+				duration := time.Since(startTime)
+				gl.Log("info", fmt.Sprintf("✅ SANITIZATION COMPLETED - %s/%s - Duration: %v, Runs: %d, Artifacts: %d",
+					owner, repo, duration, rpt.Runs.Deleted, rpt.Artifacts.Deleted))
+
+				w.Header().Set("Content-Type", "application/json; charset=utf-8")
+				_ = json.NewEncoder(w).Encode(rpt)
 			}
-		}
+		}(),
+	)
+	router.Handle("/admin/repos/", routes["/admin/repos/"])
 
-		dummy := defs.NewRules(
-			defs.NewRunsRule(30, 0, []string{}),
-			defs.NewArtifactsRule(7),
-			defs.NewReleasesRule(true),
-			defs.NewSecurityRule(false, false, ""),
-			defs.NewMonitoringRule(true, 90, false),
-		)
-
-		if rules.GetArtifactsRule() == dummy.GetArtifactsRule() &&
-			rules.GetRunsRule().GetMaxAgeDays() == dummy.GetRunsRule().GetMaxAgeDays() &&
-			rules.GetReleasesRule() == dummy.GetReleasesRule() {
-			// default sane rules
-			rules.GetRunsRule().SetMaxAgeDays(30)
-			rules.GetArtifactsRule().SetMaxAgeDays(7)
-			rules.GetReleasesRule().SetDeleteDrafts(true)
-		}
-
-		rpt, err := svc.SanitizeRepo(r.Context(), owner, repo, rules, dryRun)
-		if err != nil {
-			gl.Log("error", fmt.Sprintf("❌ Error sanitizing %s/%s: %v", owner, repo, err))
-			http.Error(w, err.Error(), 500)
-			return
-		}
-
-		duration := time.Since(startTime)
-		gl.Log("info", fmt.Sprintf("✅ SANITIZATION COMPLETED - %s/%s - Duration: %v, Runs: %d, Artifacts: %d",
-			owner, repo, duration, rpt.Runs.Deleted, rpt.Artifacts.Deleted))
-
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		_ = json.NewEncoder(w).Encode(rpt)
-	})
+	// route: GET /
+	routes["/"] = http.HandlerFunc(
+		func() http.HandlerFunc {
+			return func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodGet {
+					http.Error(w, "only GET", http.StatusMethodNotAllowed)
+					return
+				}
+				w.Header().Set("Content-Type", "text/html; charset=utf-8")
+				frontend.ServeDashboard(w, r)
+			}
+		}(),
+	)
+	router.Handle("/", routes["/"])
 
 	return routes
 }

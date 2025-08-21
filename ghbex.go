@@ -12,11 +12,13 @@ type MainConfig = interfaces.IMainConfig
 type GHServerEngine = ghserver.GHServerEngine
 type GitHub = defs.GitHub
 
-func NewMainConfigObj() MainConfig {
+func NewMainConfigObj() (MainConfig, error) {
 	return config.NewMainConfig(
 		"",
 		"",
 		"",
+		"",
+		[]string{},
 		false,
 		true,
 		false,

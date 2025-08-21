@@ -119,14 +119,19 @@ func LoadFromFile(filePath string) (interfaces.IMainConfig, error) {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		gl.Log("warn", "Configuration file does not exist: %s", filePath)
 		gl.Log("debug", "Creating a new configuration file.")
-		cfg := NewMainConfig(
+		cfg, err := NewMainConfig(
 			GetEnvOrDefault("GHBEX_BIND_ADDR", "0.0.0.0"),
 			GetEnvOrDefault("GHBEX_PORT", "8088"),
 			GetEnvOrDefault("GHBEX_REPORT_DIR", "reports"),
+			GetEnvOrDefault("GHBEX_OWNER", ""),
+			GetEnvOrDefault("GHBEX_REPOSITORIES", []string{}),
 			GetEnvOrDefault("GHBEX_DEBUG", false),
 			GetEnvOrDefault("GHBEX_DISABLE_DRY_RUN", false),
 			GetEnvOrDefault("GHBEX_BACKGROUND", true),
 		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create new configuration: %v", err)
+		}
 		if err := SaveToFile(cfg, filePath); err != nil {
 			return nil, fmt.Errorf("failed to create new configuration file: %v", err)
 		}
@@ -199,20 +204,27 @@ func SaveToFile(cfg interfaces.IMainConfig, filePath string) error {
 	} else {
 		// File already exists, handle accordingly.
 		// Ask the user if they want to overwrite it with 10s timeout
-		timeout := time.After(10 * time.Second)
-		var overwrite string
-		gl.Log("question", "File %s already exists. Overwrite? (y/n): ", filePath)
-		select {
-		case <-timeout:
-			return fmt.Errorf("timeout")
-		default:
-			fmt.Scanln(&overwrite)
-			if overwrite != "y" {
-				return fmt.Errorf("aborted")
-			} else {
-				// Overwrite the file
-				if err := os.WriteFile(filePath, data, 0644); err != nil {
-					return err
+		if os.Getenv("FORCE") == "true" || os.Getenv("FORCE") == "y" {
+			gl.Log("debug", "Overwriting existing file: %s", filePath)
+			if err := os.WriteFile(filePath, data, 0644); err != nil {
+				return err
+			}
+		} else {
+			timeout := time.After(10 * time.Second)
+			var overwrite string
+			gl.Log("question", "File %s already exists. Overwrite? (y/n): ", filePath)
+			select {
+			case <-timeout:
+				return fmt.Errorf("timeout")
+			default:
+				fmt.Scanln(&overwrite)
+				if overwrite != "y" {
+					return fmt.Errorf("aborted")
+				} else {
+					// Overwrite the file
+					if err := os.WriteFile(filePath, data, 0644); err != nil {
+						return err
+					}
 				}
 			}
 		}
