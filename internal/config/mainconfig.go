@@ -22,7 +22,6 @@ import (
 type MainConfig struct {
 	ConfigFilePath    string `yaml:"-" json:"-"`
 	*core.Runtime     `yaml:"runtime" json:"runtime"`
-	*core.Server      `yaml:"server" json:"server"`
 	*gitz.GitHub      `yaml:"github" json:"github"`
 	*common.Notifiers `mapstructure:",squash"`
 	Grompt            gromptz.Grompt `yaml:"-" json:"-"`
@@ -30,8 +29,6 @@ type MainConfig struct {
 
 func NewMainConfigObj() (interfaces.IMainConfig, error) {
 	return NewMainConfig(
-		"",
-		"",
 		"",
 		"",
 		[]string{},
@@ -42,13 +39,11 @@ func NewMainConfigObj() (interfaces.IMainConfig, error) {
 }
 
 func NewMainConfig(
-	bindAddr, port, reportDir, owner string,
+	reportDir, owner string,
 	repositories []string,
 	debug, disableDryRun, background bool,
 ) (interfaces.IMainConfig, error) {
 	return NewMainConfigType(
-		bindAddr,
-		port,
 		reportDir,
 		owner,
 		repositories,
@@ -59,19 +54,13 @@ func NewMainConfig(
 }
 
 func NewMainConfigType(
-	bindAddr, port, reportDir, owner string,
+	reportDir, owner string,
 	repositories []string,
 	debug, disableDryRun, background bool,
 ) (*MainConfig, error) {
 	LoadEnvFromCurrentDir()
 	if debug {
 		gl.SetDebug(debug)
-	}
-	if bindAddr == "" {
-		bindAddr = GetEnvOrDefault("GHBEX_BIND_ADDR", "0.0.0.0")
-	}
-	if port == "" {
-		port = GetEnvOrDefault("GHBEX_PORT", "8088")
 	}
 	if reportDir == "" {
 		reportDir = GetEnvOrDefault("GHBEX_REPORT_DIR", "reports")
@@ -98,7 +87,7 @@ func NewMainConfigType(
 	geminiKey = GetEnvOrDefault("GEMINI_API_KEY", "")
 
 	gromptEngineCfg := gromptz.NewGromptConfig(
-		port,
+		"",
 		openAIKey,
 		deepSeekKey,
 		ollamaEndpoint,
@@ -113,7 +102,6 @@ func NewMainConfigType(
 	cfg := &MainConfig{
 		ConfigFilePath: configFilePath,
 		Runtime:        core.NewRuntimeType(debug, disableDryRun, reportDir, background),
-		Server:         core.NewServerType(bindAddr, port),
 		GitHub: gitz.NewGitHubType(
 			gitz.NewGitHubAuthType(
 				"pat",
@@ -232,19 +220,6 @@ func (c *MainConfig) GetRuntime() interfaces.IRuntime {
 	return c.Runtime
 }
 
-func (c *MainConfig) GetServer() interfaces.IServer {
-	if c == nil {
-		return nil
-	}
-	if c.Server == nil {
-		c.Server = core.NewServerType(
-			GetEnvOrDefault("SERVER_HOST", "0.0.0.0"),
-			GetEnvOrDefault("SERVER_PORT", "8080"),
-		)
-	}
-	return c.Server
-}
-
 func (c *MainConfig) GetGitHub() interfaces.IGitHub {
 	if c == nil {
 		return nil
@@ -296,7 +271,7 @@ func (c *MainConfig) GetGrompt() gromptz.PromptEngine {
 	if c.Grompt == nil {
 		c.Grompt = gromptz.NewGromptEngine(
 			gromptz.NewGromptConfig(
-				c.Port,
+				"",
 				GetEnvOrDefault("OPENAI_API_KEY", ""),
 				GetEnvOrDefault("DEEPSEEK_API_KEY", ""),
 				GetEnvOrDefault("OLLAMA_API_ENDPOINT", ""),
@@ -325,7 +300,6 @@ func (c *MainConfig) GetConfigObject() any {
 	}
 	var obj any = &MainConfig{
 		Runtime:   c.Runtime,
-		Server:    c.Server,
 		GitHub:    c.GitHub,
 		Notifiers: c.Notifiers,
 		Grompt:    c.Grompt,

@@ -33,7 +33,7 @@ func NewIntelligenceOperator(cfg interfaces.IMainConfig, client *github.Client) 
 		claudeKey,
 		geminiKey string
 
-	port = cfg.GetServer().GetPort()
+	port = configLib.GetEnvOrDefault("GHBEX_PORT", "")
 	openAIKey = configLib.GetEnvOrDefault("OPENAI_API_KEY", "")
 	deepSeekKey = configLib.GetEnvOrDefault("DEEPSEEK_API_KEY", "")
 	ollamaEndpoint = configLib.GetEnvOrDefault("OLLAMA_API_ENDPOINT", "")

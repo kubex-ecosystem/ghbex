@@ -18,17 +18,13 @@ import (
 	"github.com/rafa-mori/ghbex/internal/operators/sanitize"
 	"github.com/rafa-mori/ghbex/internal/operators/security"
 	"github.com/rafa-mori/ghbex/internal/operators/workflows"
-	ghserver "github.com/rafa-mori/ghbex/internal/server"
 )
 
 type MainConfig = interfaces.IMainConfig
-type GHServerEngine = ghserver.GHServerEngine
 type GitHub = gitz.GitHub
 
 func NewMainConfigObj() (MainConfig, error) {
 	return config.NewMainConfig(
-		"",
-		"",
 		"",
 		"",
 		[]string{},

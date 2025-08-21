@@ -8,7 +8,6 @@ import (
 type IMainConfig interface {
 	GetConfigFilePath() string
 	GetRuntime() IRuntime
-	GetServer() IServer
 	GetGitHub() IGitHub
 	GetNotifiers() INotifiers
 	GetGrompt() grompt.PromptEngine

@@ -31,9 +31,8 @@ func (m *Ghbex) Usage() string {
 }
 func (m *Ghbex) Examples() []string {
 	return []string{
-		"ghbex start",
-		"ghbex stop",
-		"ghbex status",
+		"ghbex operations analyze <owner> <repo>",
+		"ghbex oper <command>",
 	}
 }
 func (m *Ghbex) Active() bool {
@@ -49,8 +48,8 @@ func (m *Ghbex) Command() *cobra.Command {
 	gl.Log("debug", "Starting Ghbex CLI...")
 
 	var rtCmd = &cobra.Command{
-		Use:     m.Module(),
-		Aliases: []string{m.Alias()},
+		Use: m.Module(),
+		// Aliases: []string{m.Alias()},
 		Example: m.concatenateExamples(),
 		Version: vs.GetVersion(),
 		Annotations: cc.GetDescriptions([]string{
@@ -59,7 +58,7 @@ func (m *Ghbex) Command() *cobra.Command {
 		}, m.PrintBanner),
 	}
 
-	rtCmd.AddCommand(cc.ServerCmdList()...)
+	rtCmd.AddCommand(cc.OperationsCmdList())
 	rtCmd.AddCommand(vs.CliCommand())
 
 	// Set usage definitions for the command and its subcommands

@@ -1,4 +1,4 @@
-// Package grompt provides a set of types and functions for working with the Grompt library.
+// Package gromptz provides a set of types and functions for working with the Grompt library.
 package gromptz
 
 import (
