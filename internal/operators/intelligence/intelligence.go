@@ -193,38 +193,22 @@ func (o *IntelligenceOperator) GenerateQuickInsight(ctx context.Context, owner, 
 	}
 
 	gl.Log("debug", fmt.Sprintf("INTELLIGENCE: Generating quick insight for %s/%s", owner, repo))
-	// Generate AI-powered assessment using Grompt
-	var repoInfo *github.Repository
-	var repoInfoResponse *github.Response
-	var err error
+
+	// 🛡️ CRITICAL SECURITY: NEVER auto-discover repositories!
+	// Only process explicitly provided owner/repo combinations
 	if owner == "" || repo == "" {
-		var reposInfo []*github.Repository
-		reposInfo, repoInfoResponse, err = o.client.Repositories.ListByAuthenticatedUser(
-			ctx,
-			&github.RepositoryListByAuthenticatedUserOptions{
-				Visibility:  "all",
-				Affiliation: "owner",
-				Type:        "owner",
-			},
-		)
-		if err != nil {
-			gl.Log("error", fmt.Sprintf("INTELLIGENCE: error getting repositories for authenticated user: %v", err))
-			return nil, fmt.Errorf("error getting repositories for authenticated user: %w", err)
-		}
-		if len(reposInfo) == 0 {
-			gl.Log("warn", "INTELLIGENCE: No repositories found for authenticated user")
-			return nil, fmt.Errorf("no repositories found for authenticated user")
-		}
-		if len(reposInfo) > 0 {
-			repoInfo = reposInfo[0] // Just take the first one for quick insight
-		}
-	} else {
-		repoInfo, repoInfoResponse, err = o.client.Repositories.Get(
-			ctx,
-			owner,
-			repo,
-		)
+		gl.Log("error", "🚨 INTELLIGENCE: Owner and repo must be explicitly provided - auto-discovery is DISABLED for security")
+		gl.Log("info", "📋 To use intelligence operator, provide explicit repository: --owner 'user' --repo 'repository'")
+		gl.Log("info", "🛡️ This prevents accidental scanning of all GitHub repositories")
+		return nil, fmt.Errorf("owner and repo must be explicitly provided - auto-discovery disabled for security")
 	}
+
+	// Generate AI-powered assessment using Grompt for the EXPLICIT repository
+	repoInfo, repoInfoResponse, err := o.client.Repositories.Get(
+		ctx,
+		owner,
+		repo,
+	)
 	if err != nil && repoInfo == nil {
 		gl.Log("error", fmt.Sprintf("INTELLIGENCE: error getting quick repository (%s/%s) info: %v", owner, repo, err))
 		return nil, fmt.Errorf("error getting quick repository info: %w", err)
