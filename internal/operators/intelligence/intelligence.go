@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"time"
 
 	"github.com/google/go-github/v61/github"
@@ -109,12 +108,26 @@ type NextStep struct {
 // NewIntelligenceOperator creates a new Intelligence operator
 func NewIntelligenceOperator(cfg interfaces.IMainConfig, client *github.Client) *IntelligenceOperator {
 	// Initialize Grompt with basic config
+	var port,
+		openAIKey,
+		deepSeekKey,
+		ollamaEndpoint,
+		claudeKey,
+		geminiKey string
+	port = cfg.GetServer().GetPort()
+	openAIKey = configLib.GetEnvOrDefault("OPENAI_API_KEY", "")
+	deepSeekKey = configLib.GetEnvOrDefault("DEEPSEEK_API_KEY", "")
+	ollamaEndpoint = configLib.GetEnvOrDefault("OLLAMA_API_ENDPOINT", "")
+	claudeKey = configLib.GetEnvOrDefault("CLAUDE_API_KEY", "")
+	geminiKey = configLib.GetEnvOrDefault("GEMINI_API_KEY", "")
 
 	gromptEngineCfg := defs.NewGromptConfig(
-		configLib.GetEnvOrDefault(
-			"GHBEX_GROMPT_CONFIG_PATH",
-			filepath.Join(filepath.Dir(cfg.GetConfigFilePath()), "grompt.yaml"),
-		),
+		port,
+		openAIKey,
+		deepSeekKey,
+		ollamaEndpoint,
+		claudeKey,
+		geminiKey,
 	)
 	engine := defs.NewPromptEngine(gromptEngineCfg)
 

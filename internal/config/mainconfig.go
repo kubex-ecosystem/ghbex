@@ -62,11 +62,24 @@ func NewMainConfig(
 		reportDir = filepath.Join(basePath, reportDir)
 	}
 	configFilePath := GetConfigFilePath(filepath.Join(basePath, "config", "sanitize.yaml"))
+	if configFilePath == "" {
+		gl.Log("error", "Configuration file not found. Please create a configuration file at %s", filepath.Join(basePath, "config", "sanitize.yaml"))
+		return nil
+	}
+	var ollamaEndpoint, claudeAPIKey, openAIKey, deepSeekKey, geminiKey string
+	ollamaEndpoint = GetEnvOrDefault("OLLAMA_API_ENDPOINT", "")
+	claudeAPIKey = GetEnvOrDefault("CLAUDE_API_KEY", "")
+	openAIKey = GetEnvOrDefault("OPENAI_API_KEY", "")
+	deepSeekKey = GetEnvOrDefault("DEEPSEEK_API_KEY", "")
+	geminiKey = GetEnvOrDefault("GEMINI_API_KEY", "")
+
 	gromptEngineCfg := defs.NewGromptConfig(
-		GetEnvOrDefault(
-			"GHBEX_GROMPT_CONFIG_PATH",
-			filepath.Join(basePath, "config", "grompt.yaml"),
-		),
+		port,
+		openAIKey,
+		deepSeekKey,
+		ollamaEndpoint,
+		claudeAPIKey,
+		geminiKey,
 	)
 	return &MainConfig{
 		ConfigFilePath: configFilePath,
