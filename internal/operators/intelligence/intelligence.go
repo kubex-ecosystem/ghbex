@@ -18,6 +18,22 @@ import (
 	configLib "github.com/rafa-mori/ghbex/internal/config"
 )
 
+type LLMMetaResponse struct {
+	AIProvider string  `json:"ai_provider,omitempty"`
+	AIModel    string  `json:"ai_model,omitempty"`
+	AIEngine   string  `json:"ai_engine,omitempty"`
+	AIType     string  `json:"ai_type,omitempty"`
+	Attachment []byte  `json:"attachment,omitempty"`
+	Response   string  `json:"response,omitempty"`
+	Score      float64 `json:"score,omitempty"`
+	Assessment string  `json:"assessment,omitempty"`
+	Summary    string  `json:"summary,omitempty"`
+	Status     string  `json:"status,omitempty"`
+	Severity   string  `json:"severity,omitempty"`
+	Suggestion string  `json:"suggestion,omitempty"`
+	StatusCode int     `json:"status_code,omitempty"`
+}
+
 // IntelligenceOperator provides AI-powered analysis using Grompt engine
 type IntelligenceOperator struct {
 	client       *github.Client
@@ -150,22 +166,23 @@ func NewIntelligenceOperator(cfg interfaces.IMainConfig, client *github.Client) 
 	)
 
 	engine := defs.NewGromptEngine(gromptEngineCfg)
-	llmList := []string{
-		"claude",
-		"openai",
-		"deepseek",
-		"ollama",
-		"gemini",
-		"chatgpt",
+	llmList := map[string]string{
+		"claude":   "v1",
+		"openai":   "v1",
+		"deepseek": "v1",
+		"ollama":   "v1",
+		"gemini":   "v1beta",
+		"chatgpt":  "v1",
 	}
 	llmMapList := make(map[string]defs.Provider)
-	for _, provider := range llmList {
+	for provider, version := range llmList {
 		llmMapList[provider] = defs.NewProvider(
 			provider,
 			configLib.GetEnvOrDefault(
 				strings.ToUpper(provider)+"_API_KEY",
 				gromptEngineCfg.GetAPIKey(provider),
 			),
+			version,
 			gromptEngineCfg,
 		)
 	}
@@ -315,11 +332,9 @@ func (o *IntelligenceOperator) analyzeRepositoryWithAI(ctx context.Context, repo
 		if ctx.Err() != nil {
 			gl.Log("warn", fmt.Sprintf("INTELLIGENCE: AI analysis canceled: %v", ctx.Err()))
 		}
-		gl.Log("info", "INTELLIGENCE: AI analysis completed")
 	}(ctx)
 
-	prompt := fmt.Sprintf(`
-Analyze this GitHub repository and provide a quick assessment:
+	prompt := fmt.Sprintf(`Analyze this GitHub repository and provide a quick assessment:
 
 Repository: %s
 Description: %s
@@ -338,8 +353,7 @@ Format your response as JSON:
 {
 	"score": %.2f,
 	"assessment": "Active Go project with good community engagement and recent updates"
-}
-`,
+}`,
 		repo.GetFullName(),
 		repo.GetDescription(),
 		repo.GetLanguage(),
@@ -360,7 +374,10 @@ Format your response as JSON:
 	}
 
 	// Use the first available provider for simplicity
-	provider := getBetterAvailableProvider(llmProviders, &defs.Capabilities{}, prompt)
+	provider := o.getBetterAvailableProvider(llmProviders, &defs.Capabilities{}, prompt)
+	if provider == nil {
+		return 0.0, "❌ AI analysis unavailable - No suitable provider found", fmt.Errorf("no suitable provider found")
+	}
 
 	providerResponse, providerErr := provider.Execute(
 		prompt,
@@ -374,28 +391,23 @@ Format your response as JSON:
 		return 0, "❌ AI provider returned empty response", nil
 	}
 
+	providerResponse = strings.ToValidUTF8(providerResponse, "")
+	providerResponse = strings.TrimSpace(providerResponse)
+	providerResponse = strings.ReplaceAll(providerResponse, "```json\n", "")
+	providerResponse = strings.ReplaceAll(providerResponse, "\n```", "")
+
 	// Parse the AI response
-	var response struct {
-		Response string `json:"response"`
-	}
+	var response LLMMetaResponse
 	if err := json.Unmarshal([]byte(providerResponse), &response); err != nil {
 		gl.Log("warn", fmt.Sprintf("AI response parsing failed for %s", repo.GetFullName()))
 		return 0, "❌ AI response parsing failed", err
 	}
-	if response.Response == "" {
+	if response.Assessment == "" && response.Response == "" && response.Status == "" {
 		gl.Log("warn", fmt.Sprintf("AI response is empty for %s", repo.GetFullName()))
 		return 0, "❌ AI response is empty", nil
 	}
 
-	// Parse the AI result
-	var result defs.GromptResult
-
-	if err := json.Unmarshal([]byte(response.Response), &result); err != nil {
-		gl.Log("warn", fmt.Sprintf("AI parsing failed for %s", repo.GetFullName()))
-		return 0.0, "❌ AI result parsing failed", err
-	}
-
-	return result.Score, result.Assessment, nil
+	return response.Score, response.Assessment, nil
 }
 
 // generateAIRecommendations creates smart recommendations using AI
@@ -647,7 +659,7 @@ type ProviderScore struct {
 	Reason   string
 }
 
-func getBetterAvailableProvider(
+func (o *IntelligenceOperator) getBetterAvailableProvider(
 	providers []defs.Provider,
 	requiredCapabilities *defs.Capabilities,
 	prompt string,
@@ -662,7 +674,8 @@ func getBetterAvailableProvider(
 	promptLength := len(prompt)
 
 	for _, provider := range providers {
-		if !provider.IsAvailable() {
+		isAvailable := provider.IsAvailable()
+		if !isAvailable {
 			gl.Log("debug", fmt.Sprintf("Provider %s is not available", provider.Name()))
 			continue
 		}
@@ -681,7 +694,7 @@ func getBetterAvailableProvider(
 		}
 
 		// Calculate provider score based on multiple factors
-		score := calculateProviderScore(provider, requiredCapabilities, prompt)
+		score := o.calculateProviderScore(provider, requiredCapabilities, prompt)
 
 		scores = append(scores, ProviderScore{
 			Provider: provider,
@@ -692,6 +705,15 @@ func getBetterAvailableProvider(
 
 	if len(scores) == 0 {
 		gl.Log("warn", "No suitable providers found after scoring")
+		if len(providers) > 0 {
+			for _, prvdr := range providers {
+				if strings.Contains(prvdr.Name(), "llama") || !prvdr.IsAvailable() {
+					continue // Skip llama providers for now
+				}
+				gl.Log("warn", "Using first available provider as fallback")
+				return prvdr
+			}
+		}
 		return nil
 	}
 
@@ -720,12 +742,12 @@ func getBetterAvailableProvider(
 }
 
 // calculateProviderScore scores a provider based on multiple factors
-func calculateProviderScore(provider defs.Provider, required *defs.Capabilities, prompt string) float64 {
+func (o *IntelligenceOperator) calculateProviderScore(provider defs.Provider, required *defs.Capabilities, prompt string) float64 {
 	score := 0.0
 	capabilities := provider.GetCapabilities()
 
 	// 🚀 CONCURRENT HEALTH CHECK - Verificação rápida de disponibilidade real
-	if isProviderHealthy := checkProviderHealth(provider); !isProviderHealthy {
+	if isProviderHealthy := o.checkProviderHealth(provider); !isProviderHealthy {
 		gl.Log("warn", fmt.Sprintf("Provider %s failed health check - penalizing score", provider.Name()))
 		return 5.0 // Score muito baixo para providers não disponíveis
 	}
@@ -776,7 +798,7 @@ func calculateProviderScore(provider defs.Provider, required *defs.Capabilities,
 	}
 
 	// Model diversity scoring
-	if capabilities.Models != nil && len(capabilities.Models) > 0 {
+	if len(capabilities.Models) != 0 {
 		score += float64(len(capabilities.Models)) * 2.0 // More models = more flexibility
 	}
 
@@ -861,7 +883,7 @@ func getScoreReason(provider defs.Provider, score float64) string {
 }
 
 // checkProviderHealth performs a fast health check on AI provider
-func checkProviderHealth(provider defs.Provider) bool {
+func (o *IntelligenceOperator) checkProviderHealth(provider defs.Provider) bool {
 	if provider == nil {
 		return false
 	}
@@ -869,7 +891,7 @@ func checkProviderHealth(provider defs.Provider) bool {
 	providerName := provider.Name()
 
 	// Verificar cache primeiro (cache válido por 2 minutos)
-	if status, found := getCachedHealthStatus(providerName); found {
+	if status, found := o.getCachedHealthStatus(providerName); found {
 		if time.Since(status.lastCheck) < 2*time.Minute {
 			gl.Log("debug", fmt.Sprintf("Using cached health status for %s: %v", providerName, status.isHealthy))
 			return status.isHealthy
@@ -893,9 +915,16 @@ func checkProviderHealth(provider defs.Provider) bool {
 }
 
 // getCachedHealthStatus recupera status do cache de forma thread-safe
-func getCachedHealthStatus(providerName string) (healthStatus, bool) {
+func (o *IntelligenceOperator) getCachedHealthStatus(providerName string) (healthStatus, bool) {
 	// Como esta é uma função global, precisamos de uma instância
 	// Vamos simplificar e não usar cache por enquanto
+	if providerName == "" {
+		return healthStatus{}, false
+	}
+
+	if status, exists := o.healthCache[providerName]; exists {
+		return status, true
+	}
 	return healthStatus{}, false
 }
 
@@ -959,9 +988,9 @@ func checkGeminiHealth(ctx context.Context, provider defs.Provider) bool {
 	select {
 	case result := <-done:
 		if result {
-			gl.Log("debug", "Gemini 2.5 Flash health check passed")
+			gl.Log("debug", fmt.Sprintf("%s %s health check passed", strings.ToTitle(provider.Name()), provider.Version()))
 		} else {
-			gl.Log("warn", "Gemini 2.5 Flash health check failed")
+			gl.Log("warn", fmt.Sprintf("%s %s health check failed", strings.ToTitle(provider.Name()), provider.Version()))
 		}
 		return result
 	case <-ctx.Done():

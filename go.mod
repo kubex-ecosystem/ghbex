@@ -4,7 +4,6 @@ go 1.25.0
 
 require (
 	github.com/google/go-github/v61 v61.0.0
-	github.com/rafa-mori/grompt v1.0.0
 	github.com/spf13/cobra v1.9.1
 	golang.org/x/oauth2 v0.30.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -34,9 +33,10 @@ require (
 	github.com/fatih/color v1.18.0
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/joho/godotenv v1.5.1
+	github.com/rafa-mori/grompt v1.0.2
 	github.com/rafa-mori/logz v1.4.0
 )
 
-replace github.com/rafa-mori/grompt => ../grompt
-
-replace github.com/rafa-mori/logz => ../logz
+replace (
+	github.com/rafa-mori/grompt => ../grompt
+)

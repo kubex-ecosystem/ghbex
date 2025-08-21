@@ -7,7 +7,7 @@ import (
 )
 
 // Embedded dashboard HTML
-//
+
 //go:embed dashboard.html
 var DashboardHTML []byte
 

@@ -50,15 +50,16 @@ func NewProviders(claudeKey string, openaiKey string, deepseekKey string, ollama
 		deepseekKey,
 		ollamaEndpoint,
 	)
-	providers = append(providers, gromptProviders.NewProvider("gemini", geminiKey, cfg))
-	providers = append(providers, gromptProviders.NewProvider("chatgpt", chatgptKey, cfg))
+	providers = append(providers, gromptProviders.NewProvider("gemini", geminiKey, "v1beta", cfg))
+	providers = append(providers, gromptProviders.NewProvider("chatgpt", chatgptKey, "v1", cfg))
 
 	return providers
 }
 func NewProvider(
 	name string,
 	apiKey string,
+	version string,
 	cfg GromptConfig,
 ) Provider {
-	return gromptProviders.NewProvider(name, apiKey, cfg)
+	return gromptProviders.NewProvider(name, apiKey, version, cfg)
 }
