@@ -10,8 +10,8 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,6 +26,7 @@ import (
 	gl "github.com/rafa-mori/ghbex/internal/module/logger"
 	"github.com/rafa-mori/ghbex/internal/notifiers"
 	"github.com/rafa-mori/ghbex/internal/operators/analytics"
+	"github.com/rafa-mori/ghbex/internal/operators/automation"
 	i "github.com/rafa-mori/ghbex/internal/operators/intelligence"
 	"github.com/rafa-mori/ghbex/internal/operators/productivity"
 )
@@ -627,6 +628,55 @@ func getRoutesMap(svc *manager.Service, g *ghServerEngine) map[string]http.Handl
 		}(),
 	)
 	router.Handle("/intelligence/recommendations/", routes["/intelligence/recommendations/"])
+
+	// route: GET /automation/{owner}/{repo}
+	routes["/automation/"] = http.HandlerFunc(
+		func() http.HandlerFunc {
+			return func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != http.MethodGet {
+					http.Error(w, "only GET", http.StatusMethodNotAllowed)
+					return
+				}
+
+				startTime := time.Now()
+
+				// Parse path: /automation/{owner}/{repo}
+				path := strings.TrimPrefix(r.URL.Path, "/automation/")
+				parts := strings.Split(path, "/")
+				if len(parts) != 2 {
+					http.Error(w, "path should be /automation/{owner}/{repo}", http.StatusBadRequest)
+					return
+				}
+				owner, repo := parts[0], parts[1]
+
+				// Parse analysis days parameter (default 30 days)
+				analysisDays := 30
+				if daysParam := r.URL.Query().Get("days"); daysParam != "" {
+					if days, err := strconv.Atoi(daysParam); err == nil && days > 0 {
+						analysisDays = days
+					}
+				}
+
+				gl.Log("info", fmt.Sprintf("🤖 AUTOMATION REQUEST - %s/%s - Analysis Days: %d", owner, repo, analysisDays))
+
+				// Perform automation analysis
+				report, err := automation.AnalyzeAutomation(r.Context(), g.ghc, owner, repo, analysisDays)
+				if err != nil {
+					gl.Log("error", fmt.Sprintf("Automation analysis error for %s/%s: %v", owner, repo, err))
+					http.Error(w, fmt.Sprintf("Automation analysis failed: %v", err), http.StatusInternalServerError)
+					return
+				}
+
+				duration := time.Since(startTime)
+				gl.Log("info", fmt.Sprintf("✅ AUTOMATION ANALYSIS COMPLETED - %s/%s - Duration: %v, Score: %.1f (%s)",
+					owner, repo, duration, report.AutomationScore, report.Grade))
+
+				w.Header().Set("Content-Type", "application/json; charset=utf-8")
+				_ = json.NewEncoder(w).Encode(report)
+			}
+		}(),
+	)
+	router.Handle("/automation/", routes["/automation/"])
 
 	// route: POST /admin/repos/{owner}/{repo}/sanitize?dry_run=1
 	routes["/admin/repos/"] = http.HandlerFunc(

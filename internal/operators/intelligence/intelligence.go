@@ -212,7 +212,7 @@ func (o *IntelligenceOperator) GenerateQuickInsight(ctx context.Context, owner, 
 			return nil, fmt.Errorf("error getting repositories for authenticated user: %w", err)
 		}
 		if len(reposInfo) == 0 {
-			gl.Log("warn", fmt.Sprintf("INTELLIGENCE: No repositories found for authenticated user"))
+			gl.Log("warn", "INTELLIGENCE: No repositories found for authenticated user")
 			return nil, fmt.Errorf("no repositories found for authenticated user")
 		}
 		if len(reposInfo) > 0 {
@@ -348,27 +348,27 @@ Format your response as JSON:
 		(float64(repo.GetStargazersCount())*float64(0.1) + float64(repo.GetForksCount())*float64(0.05) + float64(repo.GetOpenIssuesCount())*0.02),
 	)
 	if o.promptEngine == nil {
-		return 0.0, "⚠️  SIMULATED - AI analysis unavailable", fmt.Errorf("prompt engine not initialized")
+		return 0.0, "❌ AI analysis unavailable - No prompt engine configured", fmt.Errorf("prompt engine not initialized")
 	}
 
 	llmProviders := o.promptEngine.GetProviders()
 	if len(llmProviders) == 0 {
-		return 0.0, "⚠️  SIMULATED - AI analysis unavailable", fmt.Errorf("no LLM providers available")
+		return 0.0, "❌ AI analysis unavailable - No LLM providers available", fmt.Errorf("no LLM providers available")
 	}
 
 	// Use the first available provider for simplicity
-	provider := getBetterAvailableProvider(llmProviders, &defs.Capabilities{}, repo, prompt)
+	provider := getBetterAvailableProvider(llmProviders, &defs.Capabilities{}, prompt)
 
 	providerResponse, providerErr := provider.Execute(
 		prompt,
 	)
 	if providerErr != nil {
 		gl.Log("error", fmt.Sprintf("INTELLIGENCE: AI provider execution failed: %v", providerErr))
-		return 0, "", nil
+		return 0, "❌ AI provider execution failed", providerErr
 	}
 	if providerResponse == "" {
-		gl.Log("warn", "INTELLIGENCE: AI provider returned empty response, using simulated data")
-		return 0, "Provider returned empty response", nil
+		gl.Log("warn", "INTELLIGENCE: AI provider returned empty response")
+		return 0, "❌ AI provider returned empty response", nil
 	}
 
 	// Parse the AI response
@@ -376,21 +376,20 @@ Format your response as JSON:
 		Response string `json:"response"`
 	}
 	if err := json.Unmarshal([]byte(providerResponse), &response); err != nil {
-		gl.Log("warn", fmt.Sprintf("AI response parsing failed for %s, using simulated data", repo.GetFullName()))
-		return 0, "AI parsing failed", nil
+		gl.Log("warn", fmt.Sprintf("AI response parsing failed for %s", repo.GetFullName()))
+		return 0, "❌ AI response parsing failed", err
 	}
 	if response.Response == "" {
 		gl.Log("warn", fmt.Sprintf("AI response is empty for %s", repo.GetFullName()))
-		return 0, "AI response is empty", nil
+		return 0, "❌ AI response is empty", nil
 	}
 
 	// Parse the AI result
 	var result defs.GromptResult
 
 	if err := json.Unmarshal([]byte(response.Response), &result); err != nil {
-		// Fallback if JSON parsing fails - CLEARLY MARKED AS SIMULATED
-		gl.Log("warn", fmt.Sprintf("AI parsing failed for %s, using simulated data", repo.GetFullName()))
-		return 0.0, "AI parsing failed", nil
+		gl.Log("warn", fmt.Sprintf("AI parsing failed for %s", repo.GetFullName()))
+		return 0.0, "❌ AI result parsing failed", err
 	}
 
 	return result.Score, result.Assessment, nil
@@ -462,55 +461,24 @@ Provide recommendations as JSON array:
 
 // Fallback methods for when AI is not available
 func (o *IntelligenceOperator) generateFallbackInsight(owner, repo string) *RepositoryInsight {
-	gl.Log("info", fmt.Sprintf("Using SIMULATED insight for %s/%s - AI analysis not available", owner, repo))
+	gl.Log("warn", fmt.Sprintf("AI analysis unavailable for %s/%s - returning empty response", owner, repo))
 
 	return &RepositoryInsight{
 		RepositoryName:  fmt.Sprintf("%s/%s", owner, repo),
-		AIScore:         0.0, // Clear indicator this is not real
-		QuickAssessment: "⚠️  SIMULATED DATA - AI analysis unavailable",
-		HealthIcon:      "⚠️",
-		MainTag:         "DEMO",
+		AIScore:         0.0,
+		QuickAssessment: "❌ AI analysis unavailable - No insight providers configured",
+		HealthIcon:      "❌",
+		MainTag:         "UNAVAILABLE",
 		RiskLevel:       "unknown",
-		Opportunity:     "⚠️  Enable AI analysis for real insights",
+		Opportunity:     "Configure AI providers to enable intelligent analysis",
 		LastAnalyzed:    time.Now(),
 	}
 }
 
 func (o *IntelligenceOperator) generateFallbackRecommendations(owner, repo string) []SmartRecommendation {
-	gl.Log("info", fmt.Sprintf("Using SIMULATED recommendations for %s/%s - AI analysis not available", owner, repo))
+	gl.Log("warn", fmt.Sprintf("AI analysis unavailable for %s/%s - returning empty recommendations", owner, repo))
 
-	return []SmartRecommendation{
-		{
-			ID:          fmt.Sprintf("DEMO-%s-1", repo),
-			Type:        "warning",
-			Title:       "⚠️  SIMULATED DATA - Enable AI Analysis",
-			Description: "This is demonstration data. Configure AI providers for real insights.",
-			Impact:      "demo",
-			Effort:      "demo",
-			Urgency:     "demo",
-			GeneratedAt: time.Now(),
-		},
-		{
-			ID:          fmt.Sprintf("DEMO-%s-2", repo),
-			Type:        "info",
-			Title:       "🔧 Configure Grompt Integration",
-			Description: "Set up OpenAI, Claude, or other AI providers for real analysis.",
-			Impact:      "demo",
-			Effort:      "demo",
-			Urgency:     "demo",
-			GeneratedAt: time.Now(),
-		},
-		{
-			ID:          fmt.Sprintf("DEMO-%s-3", repo),
-			Type:        "placeholder",
-			Title:       "📊 Real Insights Available Soon",
-			Description: "Connect AI services to get actionable repository recommendations.",
-			Impact:      "demo",
-			Effort:      "demo",
-			Urgency:     "demo",
-			GeneratedAt: time.Now(),
-		},
-	}
+	return []SmartRecommendation{}
 }
 
 // Helper methods
@@ -562,7 +530,6 @@ func (o *IntelligenceOperator) identifyOpportunity(repo *github.Repository) stri
 func getBetterAvailableProvider(
 	providers []defs.Provider,
 	requiredCapabilities *defs.Capabilities,
-	repository *github.Repository,
 	prompt string,
 ) defs.Provider {
 	for _, provider := range providers {

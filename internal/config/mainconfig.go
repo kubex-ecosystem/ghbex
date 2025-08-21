@@ -306,8 +306,7 @@ func (c *MainConfig) GetConfigObject() any {
 	if c == nil {
 		return nil
 	}
-	var obj any
-	obj = &MainConfig{
+	var obj any = &MainConfig{
 		Runtime:   c.Runtime,
 		Server:    c.Server,
 		GitHub:    c.GitHub,

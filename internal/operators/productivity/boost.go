@@ -763,7 +763,7 @@ func calculateOptimizationGains(current, recommended string) map[string]float64 
 // Generate implementation steps
 func generateImplementationSteps(current, recommended string) []string {
 	if current == recommended {
-		return []string{"Current strategy is optimal"}
+		return []string{} // No changes needed
 	}
 
 	steps := []string{
@@ -905,115 +905,47 @@ func calculateAutoMergeConfidence(pr *github.PullRequest) float64 {
 
 // Generate auto-merge rules
 func generateAutoMergeRules() []AutoMergeRule {
-	return []AutoMergeRule{
-		{
-			Name: "Dependabot Auto-merge",
-			Conditions: []string{
-				"Author is dependabot[bot]",
-				"All checks passing",
-				"Patch or minor version update",
-			},
-			Actions: []string{
-				"Auto-approve",
-				"Auto-merge with squash",
-			},
-			SafetyLevel: "high",
-			Description: "Automatically merge dependency updates from Dependabot",
-		},
-		{
-			Name: "Documentation Auto-merge",
-			Conditions: []string{
-				"Changes only documentation files",
-				"All checks passing",
-				"Approved by maintainer",
-			},
-			Actions: []string{
-				"Auto-merge with squash",
-			},
-			SafetyLevel: "medium",
-			Description: "Automatically merge documentation-only changes",
-		},
-	}
+	// TODO: Implement real analysis for auto-merge rule suggestions
+	// Currently returning empty to avoid hardcoded suggestions
+	// Analysis should examine:
+	// - Current repository protection rules
+	// - Historical merge patterns
+	// - Team workflow preferences
+	// - Risk tolerance based on repository criticality
+
+	return []AutoMergeRule{}
 }
 
 // Generate safety checks
 func generateSafetyChecks() []SafetyCheck {
-	return []SafetyCheck{
-		{
-			Name:        "CI Pipeline",
-			Type:        "automated",
-			Required:    true,
-			Configured:  true,
-			Description: "All automated tests must pass",
-		},
-		{
-			Name:        "Code Review",
-			Type:        "manual",
-			Required:    true,
-			Configured:  false,
-			Description: "At least one approving review required",
-		},
-		{
-			Name:        "Security Scan",
-			Type:        "automated",
-			Required:    false,
-			Configured:  false,
-			Description: "Security vulnerability scan",
-		},
-	}
+	// TODO: Implement real repository safety check analysis
+	// Currently returning empty to avoid hardcoded suggestions
+	// Analysis should examine:
+	// - Existing branch protection rules
+	// - Required status checks configuration
+	// - Review requirements
+	// - Security policy configuration
+
+	return []SafetyCheck{}
 }
 
 // analyzeNotificationOptimization optimizes notification strategies
 func analyzeNotificationOptimization(ctx context.Context, client *github.Client, owner, repo string) *NotificationOptimization {
-	// Simplified notification analysis
-	currentNoise := 85.0   // High noise level
-	optimizedNoise := 35.0 // Optimized noise level
-
-	smartFilters := []NotificationFilter{
-		{
-			Name:       "Dependency Updates",
-			Type:       "author-based",
-			Conditions: []string{"author:dependabot[bot]"},
-			Action:     "digest_daily",
-			Priority:   "low",
-		},
-		{
-			Name:       "CI Failures",
-			Type:       "event-based",
-			Conditions: []string{"event:workflow_run", "conclusion:failure"},
-			Action:     "immediate",
-			Priority:   "high",
-		},
-	}
-
-	personalizedRules := []PersonalizedRule{
-		{
-			User:        "maintainer",
-			Role:        "lead",
-			Preferences: []string{"immediate_on_security", "digest_on_dependencies"},
-			Schedule:    "business_hours",
-		},
-	}
-
-	teamNotifications := []TeamNotification{
-		{
-			Event:      "release_created",
-			Recipients: []string{"@team/maintainers"},
-			Method:     "slack",
-			Timing:     "immediate",
-			Template:   "release_announcement",
-		},
-	}
-
-	estimatedReduction := 60.0 // 60% noise reduction
+	// TODO: Implement real notification optimization analysis
+	// Currently returning minimal data to avoid hardcoded suggestions
+	// Analysis should examine:
+	// - Current repository notification settings
+	// - Team member notification preferences
+	// - Historical notification patterns
+	// - Integration with external tools (Slack, email, etc.)
 
 	return &NotificationOptimization{
-		CurrentNoise:       currentNoise,
-		OptimizedNoise:     optimizedNoise,
-		SmartFilters:       smartFilters,
-		PersonalizedRules:  personalizedRules,
-		TeamNotifications:  teamNotifications,
-		EstimatedReduction: estimatedReduction,
+		CurrentNoise:       0.0,
+		OptimizedNoise:     0.0,
+		SmartFilters:       []NotificationFilter{},
+		PersonalizedRules:  []PersonalizedRule{},
+		TeamNotifications:  []TeamNotification{},
+		EstimatedReduction: 0.0,
 	}
 }
 
@@ -1068,18 +1000,18 @@ func generateSuggestedWorkflows() []SuggestedWorkflow {
 			Name:     "Dependency Security Scan",
 			Purpose:  "Automated security scanning of dependencies",
 			Triggers: []string{"schedule", "pull_request"},
-			Template: `name: Security Scan
-on:
-  schedule:
-    - cron: '0 0 * * 1'  # Weekly
-  pull_request:
-jobs:
-  security:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Run security scan
-        uses: securecodewarrior/github-action-add-sarif@v1`,
+			Template: `// Generate suggested workflows
+func generateSuggestedWorkflows() []SuggestedWorkflow {
+	// TODO: Implement real workflow suggestion analysis
+	// Currently returning empty to avoid hardcoded suggestions
+	// Analysis should examine:
+	// - Repository language and dependencies
+	// - Existing workflow patterns
+	// - Team development practices
+	// - Security and compliance requirements
+
+	return []SuggestedWorkflow{}
+}`,
 			Benefits: []string{"Early vulnerability detection", "Compliance", "Automated reporting"},
 			Priority: "high",
 			Effort:   "low",
@@ -1248,22 +1180,15 @@ func identifyDocumentationGaps(ctx context.Context, client *github.Client, owner
 
 // Identify friction points
 func identifyFrictionPoints() []FrictionPoint {
-	return []FrictionPoint{
-		{
-			Area:      "Development Setup",
-			Issue:     "Manual dependency installation",
-			Impact:    "Slow onboarding for new contributors",
-			Solutions: []string{"Docker development environment", "One-command setup script"},
-			Effort:    "medium",
-		},
-		{
-			Area:      "Code Style",
-			Issue:     "No automated formatting",
-			Impact:    "Inconsistent code style, PR review overhead",
-			Solutions: []string{"Pre-commit hooks", "Automated formatting in CI"},
-			Effort:    "low",
-		},
-	}
+	// TODO: Implement real friction point analysis
+	// Currently returning empty to avoid hardcoded suggestions
+	// Analysis should examine:
+	// - Repository setup complexity
+	// - Developer onboarding feedback
+	// - Code review patterns and bottlenecks
+	// - Build and deployment issues
+
+	return []FrictionPoint{}
 }
 
 // Analyze onboarding path
@@ -1301,22 +1226,15 @@ func analyzeOnboardingPath() *OnboardingOptimization {
 
 // Identify dev tools gaps
 func identifyDevToolsGaps() []DevToolGap {
-	return []DevToolGap{
-		{
-			Tool:     "Pre-commit Hooks",
-			Purpose:  "Automated code quality checks before commits",
-			Benefits: []string{"Consistent code quality", "Fewer CI failures", "Faster feedback"},
-			Setup:    "Install pre-commit package and configure hooks",
-			Priority: "high",
-		},
-		{
-			Tool:     "EditorConfig",
-			Purpose:  "Consistent editor settings across team",
-			Benefits: []string{"Uniform formatting", "Reduced style conflicts"},
-			Setup:    "Add .editorconfig file to repository",
-			Priority: "medium",
-		},
-	}
+	// TODO: Implement real dev tools gap analysis
+	// Currently returning empty to avoid hardcoded suggestions
+	// Analysis should examine:
+	// - Existing development tools configuration
+	// - Team development workflow patterns
+	// - Code quality and consistency metrics
+	// - Integration with repository settings
+
+	return []DevToolGap{}
 }
 
 // Calculate developer experience score
