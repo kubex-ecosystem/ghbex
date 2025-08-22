@@ -1,0 +1,5 @@
+![Lead Time p95](https://img.shields.io/badge/Lead%20Time%20p95-8.5h-brightgreen)
+![Deploy Freq](https://img.shields.io/badge/Deploy%20Freq-1.2%2Fweek-informational)
+![Code Health (CHI)](https://img.shields.io/badge/Code%20Health%20%28CHI%29-60%2F100-yellowgreen)
+![First Review p50](https://img.shields.io/badge/First%20Review%20p50-24.0h-green)
+![Bus Factor](https://img.shields.io/badge/Bus%20Factor-1-red)

@@ -67,7 +67,6 @@ const (
 	// LogTypeSilent is the log type for silent messages.
 	LogTypeSilent LogType = "silent"
 )
-
 const (
 	// LogLevelDebug 0
 	LogLevelDebug LogLevel = iota
@@ -117,9 +116,9 @@ func init() {
 		Logger = GetLogger[l.Logger](nil)
 		if logger, ok := Logger.(*gLog[l.Logger]); ok {
 			g = logger
-			logLevel = getEnvOrDefault("GOBE_LOG_LEVEL", "error")
-			debug = getEnvOrDefault("GOBE_DEBUG", false)
-			showTrace = getEnvOrDefault("GOBE_SHOW_TRACE", false)
+			logLevel = getEnvOrDefault("GHBEX_LOG_LEVEL", "error")
+			debug = getEnvOrDefault("GHBEX_DEBUG", false)
+			showTrace = getEnvOrDefault("GHBEX_SHOW_TRACE", false)
 			//g.gLogLevel = LogLevelError
 			g.gLogLevel = LogLevelInfo
 			g.gShowTrace = showTrace
@@ -277,7 +276,6 @@ func getFullMessage(messages ...any) string {
 		" ",
 	)
 }
-
 func SetDebug(d bool) {
 	if g == nil || Logger == nil {
 		_ = GetLogger[l.Logger](nil)
@@ -309,6 +307,20 @@ func SetDebug(d bool) {
 			g.SetLevel("answer")
 		default:
 			g.SetLevel("info")
+		}
+	}
+}
+func SetShowTrace(d bool) {
+	if g == nil || Logger == nil {
+		_ = GetLogger[l.Logger](nil)
+	}
+	showTrace = d
+	if g != nil {
+		g.gShowTrace = d
+		if g.Logger != nil && d {
+			g.SetLevel("error")
+		} else {
+			g.SetLevel(g.gLogLevel)
 		}
 	}
 }
@@ -444,7 +456,7 @@ func logging(lgr l.Logger, lType LogType, fullMessage string, ctxMessageMap map[
 	} else {
 		ctxMessageMap["msg"] = fullMessage
 		ctxMessageMap["showData"] = false
-		lgr.DebugCtx("Log: message not printed due to log level", ctxMessageMap)
+		//lgr.DebugCtx("Log: message not printed due to log level", ctxMessageMap)
 	}
 }
 
@@ -459,7 +471,6 @@ func (g *gLog[T]) Log(logType string, messages ...any) { Log(logType, messages..
 func (g *gLog[T]) ObjLog(obj *T, logType string, messages ...any) {
 	LogObjLogger(obj, logType, messages...)
 }
-
 func (g *gLog[T]) Notice(m ...any) {
 	if g == nil {
 		_ = GetLogger[l.Logger](nil)

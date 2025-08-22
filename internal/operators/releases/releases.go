@@ -5,7 +5,7 @@ import (
 	"context"
 
 	"github.com/google/go-github/v61/github"
-	"github.com/rafa-mori/ghbex/internal/interfaces"
+	"github.com/rafa-mori/ghbex/internal/defs/interfaces"
 )
 
 func CleanReleases(ctx context.Context, cli *github.Client, owner, repo string, r interfaces.IReleasesRule, dry bool) (deletedDrafts int, tags []string, err error) {
@@ -44,9 +44,4 @@ func CleanReleases(ctx context.Context, cli *github.Client, owner, repo string, 
 	} // END OF EXTERNAL for
 
 	return
-}
-
-func deleteRelease(ctx context.Context, cli *github.Client, owner, repo string, id int64) error {
-	_, err := cli.Repositories.DeleteRelease(ctx, owner, repo, id)
-	return err
 }

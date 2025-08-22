@@ -6,7 +6,7 @@ import (
 	"slices"
 
 	"github.com/google/go-github/v61/github"
-	"github.com/rafa-mori/ghbex/internal/interfaces"
+	"github.com/rafa-mori/ghbex/internal/defs/interfaces"
 	"github.com/rafa-mori/ghbex/internal/utils"
 )
 
@@ -63,9 +63,4 @@ func CleanRuns(ctx context.Context, cli *github.Client, owner, repo string, r in
 	} // END OF EXTERNAL for
 
 	return
-}
-
-func deleteRun(ctx context.Context, cli *github.Client, owner, repo string, id int64) error {
-	_, err := cli.Actions.DeleteWorkflowRun(ctx, owner, repo, id)
-	return err
 }

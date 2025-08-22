@@ -11,128 +11,14 @@ import (
 
 	"github.com/google/go-github/v61/github"
 
-	"github.com/rafa-mori/ghbex/internal/defs"
-	"github.com/rafa-mori/ghbex/internal/interfaces"
+	"github.com/rafa-mori/ghbex/internal/defs/gromptz"
+	"github.com/rafa-mori/ghbex/internal/defs/interfaces"
+	"github.com/rafa-mori/ghbex/internal/metrics"
 	gl "github.com/rafa-mori/ghbex/internal/module/logger"
+	"github.com/rafa-mori/ghbex/internal/render"
 
 	configLib "github.com/rafa-mori/ghbex/internal/config"
 )
-
-type LLMMetaResponse struct {
-	AIProvider string  `json:"ai_provider,omitempty"`
-	AIModel    string  `json:"ai_model,omitempty"`
-	AIEngine   string  `json:"ai_engine,omitempty"`
-	AIType     string  `json:"ai_type,omitempty"`
-	Attachment []byte  `json:"attachment,omitempty"`
-	Response   string  `json:"response,omitempty"`
-	Score      float64 `json:"score,omitempty"`
-	Assessment string  `json:"assessment,omitempty"`
-	Summary    string  `json:"summary,omitempty"`
-	Status     string  `json:"status,omitempty"`
-	Severity   string  `json:"severity,omitempty"`
-	Suggestion string  `json:"suggestion,omitempty"`
-	StatusCode int     `json:"status_code,omitempty"`
-}
-
-// IntelligenceOperator provides AI-powered analysis using Grompt engine
-type IntelligenceOperator struct {
-	client       *github.Client
-	promptEngine defs.PromptEngine
-	mainConfig   interfaces.IMainConfig
-
-	// Health check cache para evitar verificações repetitivas
-	healthCache      map[string]healthStatus
-	healthCacheMutex sync.RWMutex
-}
-
-// healthStatus armazena o status de saúde de um provider com timestamp
-type healthStatus struct {
-	isHealthy bool
-	lastCheck time.Time
-}
-
-// RepositoryInsight provides quick AI insights for repository cards
-type RepositoryInsight struct {
-	RepositoryName  string    `json:"repository_name" yaml:"repository_name"`
-	AIScore         float64   `json:"ai_score" yaml:"ai_score"`
-	QuickAssessment string    `json:"quick_assessment" yaml:"quick_assessment"`
-	HealthIcon      string    `json:"health_icon" yaml:"health_icon"`
-	MainTag         string    `json:"main_tag" yaml:"main_tag"`
-	RiskLevel       string    `json:"risk_level" yaml:"risk_level"`
-	Opportunity     string    `json:"opportunity" yaml:"opportunity"`
-	LastAnalyzed    time.Time `json:"last_analyzed" yaml:"last_analyzed"`
-}
-
-// SmartRecommendation provides contextual recommendations
-type SmartRecommendation struct {
-	ID          string    `json:"id" yaml:"id"`
-	Type        string    `json:"type" yaml:"type"` // "security", "performance", "maintenance", "enhancement"
-	Title       string    `json:"title" yaml:"title"`
-	Description string    `json:"description" yaml:"description"`
-	Impact      string    `json:"impact" yaml:"impact"`
-	Effort      string    `json:"effort" yaml:"effort"`
-	Urgency     string    `json:"urgency" yaml:"urgency"`
-	GeneratedAt time.Time `json:"generated_at" yaml:"generated_at"`
-}
-
-// HumanizedReport represents a comprehensive AI analysis
-type HumanizedReport struct {
-	RepositoryName    string                `json:"repository_name" yaml:"repository_name"`
-	OverallAssessment OverallAssessment     `json:"overall_assessment" yaml:"overall_assessment"`
-	KeyInsights       []KeyInsight          `json:"key_insights" yaml:"key_insights"`
-	Recommendations   []SmartRecommendation `json:"recommendations" yaml:"recommendations"`
-	ProductivityTips  []ProductivityTip     `json:"productivity_tips" yaml:"productivity_tips"`
-	RiskFactors       []RiskFactor          `json:"risk_factors" yaml:"risk_factors"`
-	NextSteps         []NextStep            `json:"next_steps" yaml:"next_steps"`
-	GeneratedAt       time.Time             `json:"generated_at" yaml:"generated_at"`
-	Metadata          map[string]any        `json:"metadata" yaml:"metadata"`
-}
-
-// OverallAssessment provides executive summary
-type OverallAssessment struct {
-	Grade         string   `json:"grade" yaml:"grade"`
-	Score         float64  `json:"score" yaml:"score"`
-	Summary       string   `json:"summary" yaml:"summary"`
-	KeyStrengths  []string `json:"key_strengths" yaml:"key_strengths"`
-	KeyWeaknesses []string `json:"key_weaknesses" yaml:"key_weaknesses"`
-	Trend         string   `json:"trend" yaml:"trend"` // "improving", "stable", "declining"
-}
-
-// KeyInsight represents important findings
-type KeyInsight struct {
-	Category    string `json:"category" yaml:"category"`
-	Title       string `json:"title" yaml:"title"`
-	Description string `json:"description" yaml:"description"`
-	Impact      string `json:"impact" yaml:"impact"` // "high", "medium", "low"
-	Evidence    string `json:"evidence" yaml:"evidence"`
-}
-
-// ProductivityTip provides actionable productivity advice
-type ProductivityTip struct {
-	Area       string `json:"area" yaml:"area"`
-	Tip        string `json:"tip" yaml:"tip"`
-	Benefit    string `json:"benefit" yaml:"benefit"`
-	Difficulty string `json:"difficulty" yaml:"difficulty"`
-	ROI        string `json:"roi" yaml:"roi"`
-}
-
-// RiskFactor identifies potential risks
-type RiskFactor struct {
-	Type        string `json:"type" yaml:"type"`
-	Level       string `json:"level" yaml:"level"` // "critical", "high", "medium", "low"
-	Description string `json:"description" yaml:"description"`
-	Mitigation  string `json:"mitigation" yaml:"mitigation"`
-	Probability string `json:"probability" yaml:"probability"`
-}
-
-// NextStep provides concrete actions
-type NextStep struct {
-	Order        int      `json:"order" yaml:"order"`
-	Action       string   `json:"action" yaml:"action"`
-	Owner        string   `json:"owner" yaml:"owner"`
-	Timeline     string   `json:"timeline" yaml:"timeline"`
-	Dependencies []string `json:"dependencies" yaml:"dependencies"`
-}
 
 // NewIntelligenceOperator creates a new Intelligence operator
 func NewIntelligenceOperator(cfg interfaces.IMainConfig, client *github.Client) *IntelligenceOperator {
@@ -149,14 +35,14 @@ func NewIntelligenceOperator(cfg interfaces.IMainConfig, client *github.Client) 
 		claudeKey,
 		geminiKey string
 
-	port = cfg.GetServer().GetPort()
+	port = configLib.GetEnvOrDefault("GHBEX_PORT", "")
 	openAIKey = configLib.GetEnvOrDefault("OPENAI_API_KEY", "")
 	deepSeekKey = configLib.GetEnvOrDefault("DEEPSEEK_API_KEY", "")
 	ollamaEndpoint = configLib.GetEnvOrDefault("OLLAMA_API_ENDPOINT", "")
 	claudeKey = configLib.GetEnvOrDefault("CLAUDE_API_KEY", "")
 	geminiKey = configLib.GetEnvOrDefault("GEMINI_API_KEY", "")
 
-	gromptEngineCfg := defs.NewGromptConfig(
+	gromptEngineCfg := gromptz.NewGromptConfig(
 		port,
 		openAIKey,
 		deepSeekKey,
@@ -165,7 +51,7 @@ func NewIntelligenceOperator(cfg interfaces.IMainConfig, client *github.Client) 
 		geminiKey,
 	)
 
-	engine := defs.NewGromptEngine(gromptEngineCfg)
+	engine := gromptz.NewGromptEngine(gromptEngineCfg)
 	llmList := map[string]string{
 		"claude":   "v1",
 		"openai":   "v1",
@@ -174,9 +60,9 @@ func NewIntelligenceOperator(cfg interfaces.IMainConfig, client *github.Client) 
 		"gemini":   "v1beta",
 		"chatgpt":  "v1",
 	}
-	llmMapList := make(map[string]defs.Provider)
+	llmMapList := make(map[string]gromptz.Provider)
 	for provider, version := range llmList {
-		llmMapList[provider] = defs.NewProvider(
+		llmMapList[provider] = gromptz.NewProvider(
 			provider,
 			configLib.GetEnvOrDefault(
 				strings.ToUpper(provider)+"_API_KEY",
@@ -374,7 +260,7 @@ Format your response as JSON:
 	}
 
 	// Use the first available provider for simplicity
-	provider := o.getBetterAvailableProvider(llmProviders, &defs.Capabilities{}, prompt)
+	provider := o.getBetterAvailableProvider(llmProviders, &gromptz.Capabilities{}, prompt)
 	if provider == nil {
 		return 0.0, "❌ AI analysis unavailable - No suitable provider found", fmt.Errorf("no suitable provider found")
 	}
@@ -654,16 +540,16 @@ func (o *IntelligenceOperator) identifyOpportunity(repo *github.Repository) stri
 
 // ProviderScore represents the scoring for a provider
 type ProviderScore struct {
-	Provider defs.Provider
+	Provider gromptz.Provider
 	Score    float64
 	Reason   string
 }
 
 func (o *IntelligenceOperator) getBetterAvailableProvider(
-	providers []defs.Provider,
-	requiredCapabilities *defs.Capabilities,
+	providers []gromptz.Provider,
+	requiredCapabilities *gromptz.Capabilities,
 	prompt string,
-) defs.Provider {
+) gromptz.Provider {
 	if len(providers) == 0 {
 		gl.Log("error", "No providers available")
 		return nil
@@ -742,7 +628,7 @@ func (o *IntelligenceOperator) getBetterAvailableProvider(
 }
 
 // calculateProviderScore scores a provider based on multiple factors
-func (o *IntelligenceOperator) calculateProviderScore(provider defs.Provider, required *defs.Capabilities, prompt string) float64 {
+func (o *IntelligenceOperator) calculateProviderScore(provider gromptz.Provider, required *gromptz.Capabilities, prompt string) float64 {
 	score := 0.0
 	capabilities := provider.GetCapabilities()
 
@@ -840,7 +726,7 @@ func (o *IntelligenceOperator) calculateProviderScore(provider defs.Provider, re
 }
 
 // getScoreReason provides human-readable explanation for provider selection
-func getScoreReason(provider defs.Provider, score float64) string {
+func getScoreReason(provider gromptz.Provider, score float64) string {
 	name := provider.Name()
 	capabilities := provider.GetCapabilities()
 
@@ -883,7 +769,7 @@ func getScoreReason(provider defs.Provider, score float64) string {
 }
 
 // checkProviderHealth performs a fast health check on AI provider
-func (o *IntelligenceOperator) checkProviderHealth(provider defs.Provider) bool {
+func (o *IntelligenceOperator) checkProviderHealth(provider gromptz.Provider) bool {
 	if provider == nil {
 		return false
 	}
@@ -928,229 +814,54 @@ func (o *IntelligenceOperator) getCachedHealthStatus(providerName string) (healt
 	return healthStatus{}, false
 }
 
-// setCachedHealthStatus armazena status no cache de forma thread-safe
-func setCachedHealthStatus(providerName string, isHealthy bool) {
-	// Simplificado por enquanto
-}
+// GenerateEnhancedScorecard gera um scorecard aprimorado com CHI e badges
+func (o *IntelligenceOperator) GenerateEnhancedScorecard(ctx context.Context, client *github.Client, owner, repo string, analysisData map[string]interface{}) (*metrics.EnhancedScorecard, error) {
+	// Convert from current GHbex model to enhanced scorecard
+	scorecard := metrics.ConvertFromGHbexModel(analysisData, owner, repo)
 
-// performHealthCheck executa a verificação real baseada no tipo de provider
-func performHealthCheck(ctx context.Context, provider defs.Provider) bool {
-	// Health check baseado no tipo de provider
-	switch provider.Name() {
-	case "gemini":
-		return checkGeminiHealth(ctx, provider)
-	case "ollama":
-		return checkOllamaHealth(ctx, provider)
-	case "openai", "chatgpt":
-		return checkOpenAIHealth(ctx, provider)
-	case "claude":
-		return checkClaudeHealth(ctx, provider)
-	case "deepseek":
-		return checkDeepSeekHealth(ctx, provider)
-	default:
-		// Para providers desconhecidos, assumir disponível se tem API key
-		return provider.IsAvailable()
-	}
-}
-
-// checkGeminiHealth verifica especificamente o Gemini 2.5 Flash
-func checkGeminiHealth(ctx context.Context, provider defs.Provider) bool {
-	if !provider.IsAvailable() {
-		gl.Log("debug", "Gemini provider not available (no API key)")
-		return false
+	// Calculate CHI if we have the necessary data
+	if scorecard.Code.MI > 0 && scorecard.Code.CyclomaticAvg > 0 {
+		chi := metrics.ComputeCHI(
+			scorecard.Code.MI,
+			scorecard.Code.DuplicationPct,
+			scorecard.Code.CyclomaticAvg,
+			metrics.DefaultCHI,
+		)
+		scorecard.Health.CHI = chi
+		scorecard.Health.Grade = metrics.GradeFromCHI(chi)
 	}
 
-	// Teste mínimo e rápido para verificar conectividade
-	testPrompt := "ping"
-
-	// Use um canal para timeout rápido
-	done := make(chan bool, 1)
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				gl.Log("warn", fmt.Sprintf("Gemini health check panic: %v", r))
-				done <- false
+	// Calculate bus factor from community data
+	if contributorsData, ok := analysisData["community_insights"].(map[string]interface{}); ok {
+		if contributors, ok := contributorsData["contributors"].(map[string]interface{}); ok {
+			if topContribs, ok := contributors["top_contributors"].([]interface{}); ok {
+				contribsList := make([]map[string]interface{}, len(topContribs))
+				for i, contrib := range topContribs {
+					if contribMap, ok := contrib.(map[string]interface{}); ok {
+						contribsList[i] = contribMap
+					}
+				}
+				scorecard.Community.BusFactor = metrics.CalculateBusFactor(contribsList)
 			}
-		}()
-
-		// Teste simples - apenas verifica se consegue fazer uma chamada básica
-		// Para Gemini 2.5 Flash, o response deve ser rápido
-		response, err := provider.Execute(testPrompt)
-
-		success := (err == nil && response != "")
-		if !success && err != nil {
-			gl.Log("debug", fmt.Sprintf("Gemini health check failed: %v", err))
 		}
-
-		done <- success
-	}()
-
-	select {
-	case result := <-done:
-		if result {
-			gl.Log("debug", fmt.Sprintf("%s %s health check passed", strings.ToTitle(provider.Name()), provider.Version()))
-		} else {
-			gl.Log("warn", fmt.Sprintf("%s %s health check failed", strings.ToTitle(provider.Name()), provider.Version()))
-		}
-		return result
-	case <-ctx.Done():
-		gl.Log("warn", "Gemini health check timeout (may be slow or unavailable)")
-		return false
 	}
+
+	return scorecard, nil
 }
 
-// checkOllamaHealth verifica se o Ollama está rodando localmente
-func checkOllamaHealth(ctx context.Context, provider defs.Provider) bool {
-	// Ollama muitas vezes está configurado mas não rodando
-	if !provider.IsAvailable() {
-		gl.Log("debug", "Ollama provider not available (not configured)")
-		return false
+// GenerateBadgesMarkdown gera badges markdown baseado no scorecard
+func (o *IntelligenceOperator) GenerateBadgesMarkdown(scorecard *metrics.EnhancedScorecard) []string {
+	if scorecard == nil {
+		return []string{}
 	}
 
-	// Para Ollama, fazer um teste mais rigoroso já que é local
-	done := make(chan bool, 1)
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				gl.Log("warn", fmt.Sprintf("Ollama health check panic: %v", r))
-				done <- false
-			}
-		}()
+	// Extract activity score from original data (simplified)
+	activityScore := 75 // Default value, should be calculated from commit frequency
 
-		// Teste básico para ver se o Ollama responde
-		response, err := provider.Execute("ping")
-		success := (err == nil && response != "")
-		if !success && err != nil {
-			gl.Log("debug", fmt.Sprintf("Ollama health check failed (may not be running): %v", err))
-		}
-		done <- success
-	}()
-
-	select {
-	case result := <-done:
-		if result {
-			gl.Log("debug", "Ollama health check passed (server running)")
-		} else {
-			gl.Log("warn", "Ollama health check failed (server may not be running)")
-		}
-		return result
-	case <-ctx.Done():
-		gl.Log("warn", "Ollama health check timeout (server may be slow)")
-		return false
-	}
-}
-
-// checkOpenAIHealth verifica OpenAI API
-func checkOpenAIHealth(ctx context.Context, provider defs.Provider) bool {
-	if !provider.IsAvailable() {
-		gl.Log("debug", "OpenAI provider not available (no API key)")
-		return false
-	}
-
-	// Similar ao Gemini, mas com especificidades do OpenAI
-	done := make(chan bool, 1)
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				gl.Log("warn", fmt.Sprintf("OpenAI health check panic: %v", r))
-				done <- false
-			}
-		}()
-
-		response, err := provider.Execute("ping")
-		success := (err == nil && response != "")
-		if !success && err != nil {
-			gl.Log("debug", fmt.Sprintf("OpenAI health check failed: %v", err))
-		}
-		done <- success
-	}()
-
-	select {
-	case result := <-done:
-		if result {
-			gl.Log("debug", "OpenAI health check passed")
-		} else {
-			gl.Log("warn", "OpenAI health check failed")
-		}
-		return result
-	case <-ctx.Done():
-		gl.Log("warn", "OpenAI health check timeout")
-		return false
-	}
-}
-
-// checkClaudeHealth verifica Anthropic Claude
-func checkClaudeHealth(ctx context.Context, provider defs.Provider) bool {
-	if !provider.IsAvailable() {
-		gl.Log("debug", "Claude provider not available (no API key)")
-		return false
-	}
-
-	done := make(chan bool, 1)
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				gl.Log("warn", fmt.Sprintf("Claude health check panic: %v", r))
-				done <- false
-			}
-		}()
-
-		response, err := provider.Execute("ping")
-		success := (err == nil && response != "")
-		if !success && err != nil {
-			gl.Log("debug", fmt.Sprintf("Claude health check failed: %v", err))
-		}
-		done <- success
-	}()
-
-	select {
-	case result := <-done:
-		if result {
-			gl.Log("debug", "Claude health check passed")
-		} else {
-			gl.Log("warn", "Claude health check failed")
-		}
-		return result
-	case <-ctx.Done():
-		gl.Log("warn", "Claude health check timeout")
-		return false
-	}
-}
-
-// checkDeepSeekHealth verifica DeepSeek API
-func checkDeepSeekHealth(ctx context.Context, provider defs.Provider) bool {
-	if !provider.IsAvailable() {
-		gl.Log("debug", "DeepSeek provider not available (no API key)")
-		return false
-	}
-
-	done := make(chan bool, 1)
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				gl.Log("warn", fmt.Sprintf("DeepSeek health check panic: %v", r))
-				done <- false
-			}
-		}()
-
-		response, err := provider.Execute("ping")
-		success := (err == nil && response != "")
-		if !success && err != nil {
-			gl.Log("debug", fmt.Sprintf("DeepSeek health check failed: %v", err))
-		}
-		done <- success
-	}()
-
-	select {
-	case result := <-done:
-		if result {
-			gl.Log("debug", "DeepSeek health check passed")
-		} else {
-			gl.Log("warn", "DeepSeek health check failed")
-		}
-		return result
-	case <-ctx.Done():
-		gl.Log("warn", "DeepSeek health check timeout")
-		return false
-	}
+	return render.GHbexBadges(
+		scorecard.Health.CHI,
+		scorecard.Health.Grade,
+		scorecard.Code.PrimaryLanguage,
+		activityScore,
+	)
 }

@@ -76,48 +76,48 @@ add_to_path() {
 
     shell_rc_file="$(detect_shell_rc)"
 
-    if [[ -z "$shell_rc_file" ]]; then
+    if [[ -z "${shell_rc_file:-}" ]]; then
         log error "Could not identify the shell configuration file."
         return 1
     fi
-    if grep -q "${path_expression}" "$shell_rc_file" 2>/dev/null; then
-        log success "$target_path is already in PATH for $shell_rc_file."
+    if grep -q "${path_expression:-}" "${shell_rc_file:-}" 2>/dev/null; then
+        log success "${target_path:-} is already in PATH for ${shell_rc_file:-}."
         return 0
     fi
 
-    if [[ -z "${target_path}" ]]; then
+    if [[ -z "${target_path:-}" ]]; then
         log error "Target path not provided."
         return 1
     fi
 
-    if [[ ! -d "${target_path}" ]]; then
-        log error "Target path is not a valid directory: $target_path"
+    if [[ ! -d "${target_path:-}" ]]; then
+        log error "Target path is not a valid directory: ${target_path:-}"
         return 1
     fi
 
-    if [[ ! -f "${shell_rc_file}" ]]; then
-        log error "Configuration file not found: ${shell_rc_file}"
+    if [[ ! -f "${shell_rc_file:-}" ]]; then
+        log error "Configuration file not found: ${shell_rc_file:-}"
         return 1
     fi
 
     # echo "export PATH=${target_path}:\$PATH" >> "$shell_rc_file"
-    printf '%s\n' "${path_expression}" | tee -a "$shell_rc_file" >/dev/null || {
-        log error "Failed to add $target_path to PATH in $shell_rc_file."
+    printf '%s\n' "${path_expression:-}" | tee -a "${shell_rc_file:-}" >/dev/null || {
+        log error "Failed to add ${target_path:-} to PATH in ${shell_rc_file:-}."
         return 1
     }
 
-    log success "Added $target_path to PATH in $shell_rc_file."
+    log success "Added ${target_path:-} to PATH in ${shell_rc_file:-}."
 
-    "$SHELL" -c "source ${shell_rc_file}" || {
-        log warn "Failed to reload shell. Please run 'source ${shell_rc_file}' manually."
+    "$SHELL" -c "source ${shell_rc_file:-}" || {
+        log warn "Failed to reload shell. Please run 'source ${shell_rc_file:-}' manually."
     }
 
     return 0
 }
 install_binary() {
-    local SUFFIX="${_PLATFORM_WITH_ARCH}"
+    local SUFFIX="${_PLATFORM_WITH_ARCH:-}"
     local BINARY_TO_INSTALL="${_BINARY/\/${_APP_NAME}/\/${_APP_NAME}\/dist}${SUFFIX:+_${SUFFIX}}"
-    log info "Installing binary: '${BINARY_TO_INSTALL}' as '$_APP_NAME'"
+    log info "Installing binary: '${BINARY_TO_INSTALL:-}' as '$_APP_NAME'"
 
     if [[ "$(id -u)" -ne 0 ]]; then
         log info "Non-root user detected. Installing to ${_LOCAL_BIN}..."
@@ -130,22 +130,22 @@ install_binary() {
         add_to_path "$_GLOBAL_BIN"
     fi
 
-    if [[ -n "$shell_rc_file" ]]; then
+    if [[ -n "${shell_rc_file:-}" ]]; then
       # shellcheck source=/dev/null
       . "${shell_rc_file:-$(detect_shell_rc)}" || {
-          log warn "Failed to reload shell configuration. Please run 'source ${shell_rc_file}' manually."
+          log warn "Failed to reload shell configuration. Please run 'source ${shell_rc_file:-}' manually."
       }
     fi
 }
 uninstall_binary() {
-    log info "Uninstalling binary: '$_APP_NAME'"
+    log info "Uninstalling binary: '${_APP_NAME:-}'"
 
     if [ "$(id -u)" -ne 0 ]; then
-        log info "Non-root user detected. Uninstalling from ${_LOCAL_BIN}..."
-        rm -f "$_LOCAL_BIN/$_APP_NAME"
+        log info "Non-root user detected. Uninstalling from ${_LOCAL_BIN:-}..."
+        rm -f "${_LOCAL_BIN:-}/$_APP_NAME"
     else
-        log info "Root user detected. Uninstalling from ${_GLOBAL_BIN}..."
-        rm -f "$_GLOBAL_BIN/$_APP_NAME"
+        log info "Root user detected. Uninstalling from ${_GLOBAL_BIN:-}..."
+        rm -f "${_GLOBAL_BIN:-}/$_APP_NAME"
     fi
 
     log success "Binary '$_APP_NAME' uninstalled successfully."
@@ -153,10 +153,10 @@ uninstall_binary() {
     local shell_rc_file=""
     shell_rc_file="$(detect_shell_rc)"
 
-    if [[ -n "$shell_rc_file" ]]; then
+    if [[ -n "${shell_rc_file:-}" ]]; then
       # shellcheck source=/dev/null
       . "${shell_rc_file:-$(detect_shell_rc)}" || {
-          log warn "Failed to reload shell configuration. Please run 'source ${shell_rc_file}' manually."
+          log warn "Failed to reload shell configuration. Please run 'source ${shell_rc_file:-}' manually."
       }
     fi
 
@@ -190,11 +190,11 @@ download_binary() {
     local release_url
     release_url=$(get_release_url)
     log info "Downloading binary ${_APP_NAME} for OS=${_PLATFORM}, ARCH=${_ARCH}, Version=${version}..."
-    log info "Release URL: ${release_url}"
+    log info "Release URL: ${release_url:-}"
 
     local archive_path="${_TEMP_DIR}/${_APP_NAME}.tar.gz"
     if ! curl -L -o "${archive_path}" "${release_url}"; then
-        log error "Failed to download binary from: ${release_url}"
+        log error "Failed to download binary from: ${release_url:-}"
         return 1
     fi
     log success "Binary downloaded successfully."

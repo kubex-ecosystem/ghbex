@@ -8,61 +8,8 @@ import (
 	"time"
 
 	"github.com/google/go-github/v61/github"
-	"github.com/rafa-mori/ghbex/internal/defs"
+	"github.com/rafa-mori/ghbex/internal/defs/gitz"
 )
-
-// IntelligentSanitizer provides AI-powered repository cleanup and optimization
-type IntelligentSanitizer struct {
-	client *github.Client
-}
-
-// SanitizationReport contains intelligent cleanup analysis and actions
-type SanitizationReport struct {
-	Repository       string                `json:"repository"`
-	Timestamp        time.Time             `json:"timestamp"`
-	DryRun           bool                  `json:"dry_run"`
-	OverallHealth    float64               `json:"overall_health"`
-	ActionsPerformed []SanitizationAction  `json:"actions_performed"`
-	Recommendations  []string              `json:"recommendations"`
-	Savings          *ResourceSavings      `json:"savings"`
-	SecurityImpacts  []SecurityImprovement `json:"security_impacts"`
-	QualityImpacts   []QualityImprovement  `json:"quality_impacts"`
-}
-
-// SanitizationAction represents a cleanup action taken
-type SanitizationAction struct {
-	Type        string    `json:"type"`
-	Description string    `json:"description"`
-	Impact      string    `json:"impact"`
-	ItemsCount  int       `json:"items_count"`
-	Savings     string    `json:"savings"`
-	Timestamp   time.Time `json:"timestamp"`
-	Success     bool      `json:"success"`
-}
-
-// ResourceSavings quantifies cleanup benefits
-type ResourceSavings struct {
-	StorageMB        float64 `json:"storage_mb"`
-	ComputeMinutes   int     `json:"compute_minutes"`
-	SecurityRisk     string  `json:"security_risk_reduction"`
-	MaintenanceHours float64 `json:"maintenance_hours_saved"`
-}
-
-// SecurityImprovement tracks security enhancements
-type SecurityImprovement struct {
-	Area        string `json:"area"`
-	Description string `json:"description"`
-	Severity    string `json:"severity"`
-	Status      string `json:"status"`
-}
-
-// QualityImprovement tracks code quality enhancements
-type QualityImprovement struct {
-	Metric      string  `json:"metric"`
-	Before      float64 `json:"before"`
-	After       float64 `json:"after"`
-	Improvement float64 `json:"improvement"`
-}
 
 // NewIntelligentSanitizer creates a new intelligent sanitizer
 func NewIntelligentSanitizer(client *github.Client) *IntelligentSanitizer {
@@ -352,7 +299,7 @@ func (s *IntelligentSanitizer) calculateHealthImprovement(report *SanitizationRe
 }
 
 // ToMarkdown generates enhanced markdown report with intelligent insights
-func ToMarkdown(r *defs.Report) string {
+func ToMarkdown(r *gitz.Report) string {
 	return fmt.Sprintf(`# 🧹 Intelligent Repository Sanitization: %s/%s
 
 ## 📊 Executive Summary
@@ -424,35 +371,4 @@ func ToMarkdown(r *defs.Report) string {
 			return "• Repository optimized successfully!\n• Consider implementing automated maintenance workflows\n• Monitor repository health regularly for continued optimization"
 		}(),
 	)
-}
-
-// calculateReleaseHealth computes realistic release health score based on actual actions
-func calculateReleaseHealth(action *SanitizationAction) float64 {
-	if action == nil {
-		return 65.0 // No releases processed
-	}
-
-	// Base score for having organized releases
-	baseScore := 70.0
-
-	// Improvement based on cleanup actions
-	if action.ItemsCount > 0 {
-		// Each cleaned item improves score
-		improvement := float64(action.ItemsCount) * 3.0
-		return min(baseScore+improvement, 95.0)
-	}
-
-	return baseScore
-}
-
-// calculateHealthScore computes realistic overall health score
-func calculateHealthScore(runs, artifacts, security int) float64 {
-	baseScore := 75.0
-
-	// Each category contributes to score
-	runImpact := min(float64(runs)*2.0, 10.0)
-	artifactImpact := min(float64(artifacts)*1.5, 8.0)
-	securityImpact := min(float64(security)*5.0, 12.0)
-
-	return min(baseScore+runImpact+artifactImpact+securityImpact, 98.0)
 }

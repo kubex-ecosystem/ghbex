@@ -10,7 +10,7 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"github.com/rafa-mori/ghbex/internal/interfaces"
+	"github.com/rafa-mori/ghbex/internal/defs/interfaces"
 
 	gl "github.com/rafa-mori/ghbex/internal/module/logger"
 
@@ -120,8 +120,6 @@ func LoadFromFile(filePath string) (interfaces.IMainConfig, error) {
 		gl.Log("warn", "Configuration file does not exist: %s", filePath)
 		gl.Log("debug", "Creating a new configuration file.")
 		cfg, err := NewMainConfig(
-			GetEnvOrDefault("GHBEX_BIND_ADDR", "0.0.0.0"),
-			GetEnvOrDefault("GHBEX_PORT", "8088"),
 			GetEnvOrDefault("GHBEX_REPORT_DIR", "reports"),
 			GetEnvOrDefault("GHBEX_OWNER", ""),
 			GetEnvOrDefault("GHBEX_REPOSITORIES", []string{}),
