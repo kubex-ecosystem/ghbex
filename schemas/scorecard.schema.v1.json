@@ -1,0 +1,299 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rafamori.pro/schemas/scorecard.v1.json",
+  "title": "Repository Scorecard (v1)",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "owner",
+    "repo",
+    "generated_at",
+    "period_days",
+    "windows",
+    "health",
+    "dora",
+    "code",
+    "deps",
+    "community"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "repo_scorecard@1.0.0"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "repo": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "period_days": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "windows": {
+      "type": "object",
+      "description": "Moving windows used for trend lines",
+      "properties": {
+        "trend_days": {
+          "type": "integer",
+          "default": 60
+        }
+      },
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "description": "Data lineage for auditability",
+      "properties": {
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "confidence": {
+      "type": "object",
+      "description": "Confidence (0..1) for each group of metrics",
+      "properties": {
+        "dora": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.7
+        },
+        "code": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.6
+        },
+        "deps": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.9
+        },
+        "community": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.5
+        }
+      },
+      "additionalProperties": false
+    },
+    "dora": {
+      "type": "object",
+      "required": [
+        "deployment_frequency",
+        "lead_time_p95",
+        "change_fail_rate",
+        "mttr"
+      ],
+      "properties": {
+        "deployment_frequency": {
+          "type": "number",
+          "minimum": 0,
+          "description": "deploys per period_unit",
+          "examples": [
+            1.2
+          ]
+        },
+        "period_unit": {
+          "type": "string",
+          "enum": [
+            "day",
+            "week",
+            "month"
+          ],
+          "default": "week"
+        },
+        "lead_time_p50": {
+          "type": "number",
+          "minimum": 0,
+          "description": "hours"
+        },
+        "lead_time_p95": {
+          "type": "number",
+          "minimum": 0,
+          "description": "hours"
+        },
+        "change_fail_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "percent"
+        },
+        "mttr": {
+          "type": "number",
+          "minimum": 0,
+          "description": "hours"
+        }
+      },
+      "additionalProperties": false
+    },
+    "code": {
+      "type": "object",
+      "required": [
+        "primary_language",
+        "mi",
+        "duplication_pct",
+        "cyclomatic_avg"
+      ],
+      "properties": {
+        "primary_language": {
+          "type": "string"
+        },
+        "mi": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "duplication_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "cyclomatic_avg": {
+          "type": "number",
+          "minimum": 0
+        },
+        "loc_total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "loc_code": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "languages_pct": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "trend": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "description": "time series of CHI or MI for sparkline"
+        }
+      },
+      "additionalProperties": false
+    },
+    "deps": {
+      "type": "object",
+      "required": [
+        "count",
+        "vulnerable",
+        "outdated",
+        "health"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "vulnerable": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outdated": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "health": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "additionalProperties": false
+    },
+    "community": {
+      "type": "object",
+      "required": [
+        "contributors",
+        "bus_factor"
+      ],
+      "properties": {
+        "contributors": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bus_factor": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "first_review_p50": {
+          "type": "number",
+          "description": "hours"
+        },
+        "first_review_p90": {
+          "type": "number",
+          "description": "hours"
+        },
+        "review_coverage_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "onboarding_days_p50": {
+          "type": "number",
+          "minimum": 0
+        },
+        "trend_lead_time": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "health": {
+      "type": "object",
+      "required": [
+        "chi",
+        "grade"
+      ],
+      "properties": {
+        "chi": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "grade": {
+          "type": "string",
+          "enum": [
+            "A+",
+            "A",
+            "A-",
+            "B+",
+            "B",
+            "B-",
+            "C+",
+            "C",
+            "C-",
+            "D",
+            "E"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

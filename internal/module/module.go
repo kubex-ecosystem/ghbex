@@ -59,6 +59,7 @@ func (m *Ghbex) Command() *cobra.Command {
 	}
 
 	rtCmd.AddCommand(cc.OperationsCmdList())
+	rtCmd.AddCommand(cc.ScoreCardRootCmd())
 	rtCmd.AddCommand(vs.CliCommand())
 
 	// Set usage definitions for the command and its subcommands

@@ -1,0 +1,41 @@
+{
+  "schema_version": "repo_scorecard@1.0.0",
+  "owner": "rafa-mori",
+  "repo": "gobe",
+  "period_days": 60,
+  "dora": {
+    "deployment_frequency": 1.2,
+    "period_unit": "week",
+    "lead_time_p50": 2.5,
+    "lead_time_p95": 8.5,
+    "change_fail_rate": 5.0,
+    "mttr": 2.0
+  },
+  "code": {
+    "mi": 38.47,
+    "duplication_pct": 18.0,
+    "cyclomatic_avg": 2.55,
+    "trend": [
+      35.2,
+      36.8,
+      37.5,
+      38.1,
+      38.47,
+      38.9,
+      39.2
+    ]
+  },
+  "community": {
+    "first_review_p50": 24.0,
+    "bus_factor": 1,
+    "trend_lead_time": [
+      28.5,
+      26.2,
+      24.8,
+      23.5,
+      24.0,
+      25.1,
+      24.3
+    ]
+  }
+}

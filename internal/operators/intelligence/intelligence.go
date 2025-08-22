@@ -13,7 +13,9 @@ import (
 
 	"github.com/rafa-mori/ghbex/internal/defs/gromptz"
 	"github.com/rafa-mori/ghbex/internal/defs/interfaces"
+	"github.com/rafa-mori/ghbex/internal/metrics"
 	gl "github.com/rafa-mori/ghbex/internal/module/logger"
+	"github.com/rafa-mori/ghbex/internal/render"
 
 	configLib "github.com/rafa-mori/ghbex/internal/config"
 )
@@ -810,4 +812,56 @@ func (o *IntelligenceOperator) getCachedHealthStatus(providerName string) (healt
 		return status, true
 	}
 	return healthStatus{}, false
+}
+
+// GenerateEnhancedScorecard gera um scorecard aprimorado com CHI e badges
+func (o *IntelligenceOperator) GenerateEnhancedScorecard(ctx context.Context, client *github.Client, owner, repo string, analysisData map[string]interface{}) (*metrics.EnhancedScorecard, error) {
+	// Convert from current GHbex model to enhanced scorecard
+	scorecard := metrics.ConvertFromGHbexModel(analysisData, owner, repo)
+
+	// Calculate CHI if we have the necessary data
+	if scorecard.Code.MI > 0 && scorecard.Code.CyclomaticAvg > 0 {
+		chi := metrics.ComputeCHI(
+			scorecard.Code.MI,
+			scorecard.Code.DuplicationPct,
+			scorecard.Code.CyclomaticAvg,
+			metrics.DefaultCHI,
+		)
+		scorecard.Health.CHI = chi
+		scorecard.Health.Grade = metrics.GradeFromCHI(chi)
+	}
+
+	// Calculate bus factor from community data
+	if contributorsData, ok := analysisData["community_insights"].(map[string]interface{}); ok {
+		if contributors, ok := contributorsData["contributors"].(map[string]interface{}); ok {
+			if topContribs, ok := contributors["top_contributors"].([]interface{}); ok {
+				contribsList := make([]map[string]interface{}, len(topContribs))
+				for i, contrib := range topContribs {
+					if contribMap, ok := contrib.(map[string]interface{}); ok {
+						contribsList[i] = contribMap
+					}
+				}
+				scorecard.Community.BusFactor = metrics.CalculateBusFactor(contribsList)
+			}
+		}
+	}
+
+	return scorecard, nil
+}
+
+// GenerateBadgesMarkdown gera badges markdown baseado no scorecard
+func (o *IntelligenceOperator) GenerateBadgesMarkdown(scorecard *metrics.EnhancedScorecard) []string {
+	if scorecard == nil {
+		return []string{}
+	}
+
+	// Extract activity score from original data (simplified)
+	activityScore := 75 // Default value, should be calculated from commit frequency
+
+	return render.GHbexBadges(
+		scorecard.Health.CHI,
+		scorecard.Health.Grade,
+		scorecard.Code.PrimaryLanguage,
+		activityScore,
+	)
 }
