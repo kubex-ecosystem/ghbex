@@ -9,10 +9,22 @@ import (
 	"time"
 
 	"github.com/google/go-github/v61/github"
+
+	gl "github.com/rafa-mori/ghbex/internal/module/logger"
 )
 
 // analyzeDevelopmentPatterns analyzes commit patterns and development habits
 func analyzeDevelopmentPatterns(ctx context.Context, client *github.Client, owner, repo string, since time.Time) (*DevelopmentPatterns, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			gl.Log("error", fmt.Sprintf("Recovered from panic: %v", r))
+		}
+	}()
+
+	if client == nil {
+		return nil, fmt.Errorf("GitHub client is nil")
+	}
+
 	// Get commits
 	commits, _, err := client.Repositories.ListCommits(ctx, owner, repo, &github.CommitsListOptions{
 		Since: since,

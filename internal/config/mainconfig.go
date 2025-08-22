@@ -76,7 +76,7 @@ func NewMainConfigType(
 	}
 	configFilePath := GetConfigFilePath(filepath.Join(basePath, "config", "sanitize.yaml"))
 	if configFilePath == "" {
-		gl.Log("error", "Configuration file not found. Please create a configuration file at %s", filepath.Join(basePath, "config", "sanitize.yaml"))
+		gl.Log("error", fmt.Sprintf("Configuration file not found. Please create a configuration file at %s", filepath.Join(basePath, "config", "sanitize.yaml")))
 		return nil, fmt.Errorf("configuration file not found")
 	}
 	var ollamaEndpoint, claudeAPIKey, openAIKey, deepSeekKey, geminiKey string
@@ -129,12 +129,13 @@ func NewMainConfigType(
 	var explicitRepos []string
 	if len(repositories) > 0 {
 		explicitRepos = repositories
-		gl.Log("info", "🎯 Using %d repositories from CLI arguments", len(explicitRepos))
+		gl.Log("info", fmt.Sprintf("🎯 Using %d repositories from CLI arguments", len(explicitRepos)))
 	} else {
+
 		repoListEnv := GetEnvOrDefault("REPO_LIST", "")
 		if repoListEnv != "" {
 			explicitRepos = strings.Split(repoListEnv, ",")
-			gl.Log("info", "🎯 Using %d repositories from REPO_LIST env var", len(explicitRepos))
+			gl.Log("info", fmt.Sprintf("🎯 Using %d repositories from REPO_LIST env var", len(explicitRepos)))
 		} else {
 			gl.Log("warning", "🚨 NO REPOSITORIES CONFIGURED - Using EMPTY list for safety")
 			gl.Log("info", "📋 To configure repositories, use:")
@@ -158,7 +159,7 @@ func NewMainConfigType(
 
 			parts := strings.Split(repoSpec, "/")
 			if len(parts) != 2 {
-				gl.Log("warning", "⚠️ Invalid repository format '%s' - expected 'owner/repo'", repoSpec)
+				gl.Log("warning", fmt.Sprintf("⚠️ Invalid repository format '%s' - expected 'owner/repo'", repoSpec))
 				continue
 			}
 
@@ -166,11 +167,11 @@ func NewMainConfigType(
 			repoName := strings.TrimSpace(parts[1])
 
 			if repoOwner == "" || repoName == "" {
-				gl.Log("warning", "⚠️ Invalid repository format '%s' - owner and repo cannot be empty", repoSpec)
+				gl.Log("warning", fmt.Sprintf("⚠️ Invalid repository format '%s' - owner and repo cannot be empty", repoSpec))
 				continue
 			}
 
-			gl.Log("info", "   📦 %s/%s", repoOwner, repoName)
+			gl.Log("info", fmt.Sprintf("   📦 %s/%s", repoOwner, repoName))
 			repos = append(repos, gitz.NewRepoCfgType(
 				repoOwner,
 				repoName,

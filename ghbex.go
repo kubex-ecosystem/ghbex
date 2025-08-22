@@ -70,8 +70,12 @@ type InsightsReport = analytics.InsightsReport
 func AnalyzeRepository(ctx context.Context, client *github.Client, owner, repo string, analysisDays int) (*InsightsReport, error) {
 	return analytics.AnalyzeRepository(ctx, client, owner, repo, analysisDays)
 }
+func GetRepositoryInsightsClient(ctx context.Context, client *github.Client, owner, repo string, days int) (*InsightsReport, error) {
+	return analytics.GetRepositoryInsights(ctx, client, owner, repo, days)
+}
 func GetRepositoryInsights(ctx context.Context, owner, repo string, days int) (*InsightsReport, error) {
-	return analytics.GetRepositoryInsights(ctx, owner, repo, days)
+	ghc := github.NewClient(nil)
+	return analytics.GetRepositoryInsights(ctx, ghc, owner, repo, days)
 }
 
 // AUTOMATION

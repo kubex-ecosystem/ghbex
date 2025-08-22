@@ -1,185 +1,246 @@
-# 🚀 GHbex - Intelligent GitHub Repository Management Platform
+# ![GHbex Banner](docs/assets/nm_banner_md.png)
 
-**GHbex** é uma plataforma avançada de gerenciamento de repositórios GitHub com capacidades de IA, análise inteligente e automação. Projetado para sanitização, otimização e insights avançados de repositórios.
+**A Intelligent GitHub repository management platform with automation, advanced analytics, and multi-AI integration. Automate, optimize, and monitor your GitHub repositories with intelligence and security.**
 
-## ✨ Funcionalidades Principais
+---
 
-### 🧠 **Intelligence Operator (AI-Powered)**
+[![Kubex Go Dist CI](https://github.com/rafa-mori/ghbex/actions/workflows/kubex_go_release.yml/badge.svg)](https://github.com/rafa-mori/ghbex/actions/workflows/kubex_go_release.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Go Version](https://img.shields.io/badge/go-%3E=1.21-blue)](go.mod)
+[![Releases](https://img.shields.io/github/v/release/rafa-mori/ghbex?include_prereleases)](https://github.com/rafa-mori/ghbex/releases)
 
-- **Quick Insights**: Análise rápida de repositórios com IA
-- **Smart Recommendations**: Recomendações inteligentes baseadas em padrões
-- **Multi-Provider Support**: Gemini, OpenAI, Claude, DeepSeek, Ollama
-- **Health Checking**: Verificação concorrente de disponibilidade de providers
+---
 
-### 🧹 **Repository Sanitization**
+<!--
+<p align="center">
+  <img src="docs/assets/ghbex_demo.gif" alt="Animated demonstration of GHbex" width="80%"/>
+  <br><em>GIF: Animated demonstration of GHbex (add here when available)</em>
+</p>
+-->
 
-- **Workflow Runs**: Limpeza automática de execuções antigas
-- **Artifacts**: Remoção de artefatos obsoletos
-- **Draft Releases**: Eliminação de releases em rascunho
-- **Bulk Operations**: Sanitização em massa de múltiplos repositórios
+## 📑 Table of Contents
 
-### 📊 **Analytics & Insights**
+- [About the Project](#-about-the-project)
+- [Main Features](#-main-features)
+- [Installation](#-installation)
+- [Configuration](#️-configuration)
+- [Quick Start](#-quick-start)
+- [Usage Examples](#-usage-examples)
+- [CLI](#️-cli)
+- [Architecture](#️-architecture)
+- [Security](#-security)
+- [Performance](#-performance)
+- [Contributing](#-contributing)
+- [Roadmap](#️-roadmap)
+- [License](#-license)
+- [Author](#-author)
+- [Useful Links](#-useful-links)
 
-- **Repository Health**: Análise completa de saúde do repositório
-- **Dependency Analysis**: Avaliação de dependências e vulnerabilidades
-- **Activity Patterns**: Padrões de atividade e engajamento
-- **Performance Metrics**: Métricas de performance e qualidade
+---
 
-### 🚀 **Productivity Optimization**
+## 🧩 About the Project
 
-- **Workflow Analysis**: Análise de workflows do GitHub Actions
-- **Auto-merge Rules**: Recomendações de regras de auto-merge
-- **Notification Optimization**: Otimização de notificações
-- **ROI Calculation**: Cálculo de retorno sobre investimento
+**GHbex** is an advanced platform for GitHub repository management, featuring artificial intelligence, automation, analytics, and optimization. It enables everything from repository sanitization and cleanup to intelligent recommendations, dependency analysis, workflow automation, and integration with multiple AI providers (Gemini, OpenAI, Claude, DeepSeek, Ollama).
 
-### 🤖 **Automation Engine**
+Ideal for DevOps teams, software engineers, and maintainers seeking automation, governance, and insights for their repositories.
 
-- **Pattern Recognition**: Reconhecimento de padrões de automação
-- **Recommendation Engine**: Motor de recomendações automáticas
-- **Confidence Scoring**: Sistema de pontuação de confiança
-- **Integration Suggestions**: Sugestões de integração
+---
 
-## 🛠️ Tecnologias
+## ✨ Main Features
 
-- **Backend**: Go 1.25+ com arquitetura modular
-- **GitHub Integration**: API v4 com suporte a PAT e GitHub Apps
-- **AI Providers**: Suporte multi-provider com health checking
-- **Authentication**: PAT (Personal Access Token) ou GitHub App (JWT + Installation)
-- **Notificações**: Discord webhook integration
-- **Frontend**: Dashboard web integrado
+- **AI-Powered Operator:**
+  - Fast analysis and intelligent recommendations
+  - Multi-provider support (Gemini, OpenAI, Claude, DeepSeek, Ollama)
+  - Concurrent health check for providers
+- **Repository Sanitization:**
+  - Automatic cleanup of old workflows, artifacts, and draft releases
+  - Bulk operations for multiple repositories
+- **Analytics & Insights:**
+  - Health, dependency, vulnerability, and activity pattern analysis
+  - Performance and engagement metrics
+- **Productivity Optimization:**
+  - Workflow analysis, auto-merge suggestions, notification optimization
+  - ROI calculation
+- **Automation Engine:**
+  - Pattern recognition, automatic recommendations, trust scoring
+  - Integration suggestions
 
-## ⚡ Quick Start
+---
 
-### 1. **Instalação**
+## ⚡ Installation
+
+Requirements: Go >= 1.21
 
 ```bash
-# Clone o repositório
+# Clone the repository
 git clone https://github.com/rafa-mori/ghbex.git
 cd ghbex
 
-# Instale dependências
+# Install dependencies
 go mod tidy
 
-# Build do projeto
+# Build the project
 make build-dev
 ```
 
-### 2. **Configuração**
+---
+
+## ⚙️ Configuration
 
 ```bash
-# Configure GitHub authentication
-export GITHUB_TOKEN="ghp_your_personal_access_token"
+# GitHub Authentication
+export GITHUB_TOKEN="ghp_your_personal_token"
 
-# Configure AI providers (opcional)
+# AI Providers (optional)
 export GEMINI_API_KEY="your_gemini_api_key"
 export OPENAI_API_KEY="your_openai_api_key"
 
-# Configure Discord notifications (opcional)
+# Discord Notifications (optional)
 export DISCORD_WEBHOOK_URL="your_discord_webhook_url"
 ```
 
-### 3. **Execução**
+---
+
+## 🚀 Quick Start
 
 ```bash
-# Inicie o servidor
+# Start the server
 ./dist/ghbex start --owner rafa-mori --port 8088 --repos 'owner/repo1,owner/repo2'
 
-# Ou usando variáveis de ambiente
+# Or using environment variables
 export REPO_LIST='owner/repo1,owner/repo2'
 ./dist/ghbex start --port 8088
 ```
 
-### 4. **Acesso**
+### Access
 
 - **Dashboard**: <http://localhost:8088>
 - **Health Check**: <http://localhost:8088/health>
-- **API Documentation**: Veja [docs/endpoints.md](docs/endpoints.md)
-
-## 🔧 Comandos CLI
-
-```bash
-# Iniciar servidor
-ghbex start --owner <owner> --port <port> --repos '<repo1,repo2>'
-
-# Verificar status
-ghbex status
-
-# Parar servidor
-ghbex stop
-
-# Verificar configuração
-ghbex config
-
-# Mostrar versão
-ghbex version
-```
-
-## 🏗️ Arquitetura
-
-```plaintext
-ghbex/
-├── cmd/                    # Pontos de entrada CLI
-│   ├── main.go            # Entrypoint principal
-│   └── cli/               # Comandos CLI
-├── internal/              # Código interno
-│   ├── operators/         # Operadores especializados
-│   │   ├── intelligence/  # IA e insights
-│   │   ├── sanitize/      # Limpeza de repositórios
-│   │   ├── analytics/     # Análise e métricas
-│   │   ├── productivity/  # Otimização de produtividade
-│   │   └── automation/    # Motor de automação
-│   ├── server/           # Servidor HTTP
-│   ├── client/           # Cliente GitHub
-│   └── config/           # Configuração
-├── docs/                 # Documentação
-└── support/              # Scripts de suporte
-```
-
-## 🛡️ Segurança
-
-- ✅ **Sanitização de entrada**: Validação rigorosa de parâmetros
-- ✅ **Rate limiting**: Respeito aos limites da API GitHub
-- ✅ **Dry-run mode**: Modo seguro para testes
-- ✅ **Repository scoping**: Apenas repositórios explicitamente configurados
-- ✅ **Error recovery**: Tratamento robusto de erros e panic recovery
-
-## 📈 Performance
-
-- **Health Checking**: Sistema concorrente com cache para providers AI
-- **Timeout Management**: Timeouts agressivos (3s) para verificações
-- **Concurrent Operations**: Verificações paralelas para múltiplos providers
-- **Intelligent Caching**: Cache thread-safe para evitar verificações repetitivas
-
-## 🤝 Contribuição
-
-1. **Fork** o projeto
-2. **Clone** seu fork
-3. **Branch** para sua feature (`git checkout -b feature/amazing-feature`)
-4. **Commit** suas mudanças (`git commit -m 'Add amazing feature'`)
-5. **Push** para a branch (`git push origin feature/amazing-feature`)
-6. **Abra** um Pull Request
-
-## 📋 Roadmap
-
-- [ ] **Swagger Documentation**: Documentação automática de API
-- [ ] **Webhook Support**: Suporte a webhooks GitHub
-- [ ] **Advanced Analytics**: Métricas avançadas e dashboards
-- [ ] **Team Management**: Gerenciamento de equipes e permissões
-- [ ] **Scheduled Operations**: Operações agendadas e recorrentes
-
-## 📄 Licença
-
-Este projeto está licenciado sob a **MIT License** - veja o arquivo [LICENSE](LICENSE) para detalhes.
-
-## 👨‍💻 Autor
-
-**Rafael Mori** - [@rafa-mori](https://github.com/rafa-mori)
+- **API Docs**: [docs/endpoints.md](docs/endpoints.md)
 
 ---
 
-🔗 **Links Úteis:**
+## 🧪 Usage Examples
 
-- [Documentação de Endpoints](docs/endpoints.md)
-- [Configuração Avançada](docs/config/)
+### Intelligent Repository Analysis
+
+```bash
+ghbex intelligence --repo rafa-mori/ghbex
+```
+
+### Bulk Sanitization
+
+```bash
+ghbex sanitize --repos 'rafa-mori/ghbex,rafa-mori/logz'
+```
+
+### Automation Recommendations
+
+```bash
+ghbex automation --repo rafa-mori/ghbex
+```
+
+---
+
+## 🖥️ CLI
+
+```bash
+# Start server
+ghbex start --owner <owner> --port <port> --repos '<repo1,repo2>'
+
+# Check status
+ghbex status
+
+# Stop server
+ghbex stop
+
+# Check configuration
+ghbex config
+
+# Show version
+ghbex version
+```
+
+---
+
+## 🏗️ Architecture
+
+```plaintext
+ghbex/
+├── cmd/                    # CLI entrypoints
+│   ├── main.go            # Main entrypoint
+│   └── cli/               # CLI commands
+├── internal/              # Internal code
+│   ├── operators/         # Specialized operators
+│   │   ├── intelligence/  # AI and insights
+│   │   ├── sanitize/      # Cleanup
+│   │   ├── analytics/     # Metrics
+│   │   ├── productivity/  # Optimization
+│   │   └── automation/    # Automation
+│   ├── server/           # HTTP server
+│   ├── client/           # GitHub client
+│   └── config/           # Configuration
+├── docs/                 # Documentation
+└── support/              # Support scripts
+```
+
+---
+
+## 🔒 Security
+
+- **Input sanitization**: Strict parameter validation
+- **Rate limiting**: Respects GitHub API limits
+- **Dry-run mode**: Safe execution for testing
+- **Restricted scope**: Only explicitly configured repositories
+- **Error recovery**: Robust error and panic handling
+
+---
+
+## 🚀 Performance
+
+- **Concurrent health check** for AI providers
+- **Aggressive timeouts** (3s) for checks
+- **Parallel operations** for multiple providers
+- **Smart cache**: thread-safe to avoid repetitions
+
+---
+
+## 🤝 Contributing
+
+1. Fork the project
+2. Clone your fork
+3. Create a branch (`git checkout -b feature/new-feature`)
+4. Commit your changes (`git commit -m 'feat: new feature'`)
+5. Push to the branch (`git push origin feature/new-feature`)
+6. Open a Pull Request
+
+---
+
+## 🗺️ Roadmap
+
+- [ ] Swagger Docs: automatic API documentation
+- [ ] Webhook Support: GitHub webhook integration
+- [ ] Advanced analytics: dashboards and metrics
+- [ ] Team management: permissions and teams
+- [ ] Scheduled operations: recurring executions
+
+---
+
+## 📄 License
+
+Project under **MIT** license — see the [LICENSE](LICENSE) file.
+
+---
+
+## 👨‍💻 Author
+
+**Rafael Mori** — [@rafa-mori](https://github.com/rafa-mori)
+
+---
+
+## 🔗 Useful Links
+
+- [Endpoints Documentation](docs/endpoints.md)
+- [Advanced Configuration](docs/config/)
 - [Issues & Bug Reports](https://github.com/rafa-mori/ghbex/issues)
-- [Discussões](https://github.com/rafa-mori/ghbex/discussions)
+- [Discussions](https://github.com/rafa-mori/ghbex/discussions)
