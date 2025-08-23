@@ -4,12 +4,26 @@ import gromptProviders "github.com/rafa-mori/grompt/factory/providers"
 
 type Provider = gromptProviders.Provider
 
-func NewProviders(claudeKey string, openaiKey string, deepseekKey string, ollamaEndpoint string, geminiKey string, chatgptKey string, cfg GromptConfig) []Provider {
+func NewProviders(
+	bindAddr string,
+	port string,
+	claudeKey string,
+	openaiKey string,
+	deepSeekKey string,
+	ollamaEndpoint string,
+	geminiKey string,
+	chatgptKey string,
+	cfg GromptConfig) []Provider {
 	providers := gromptProviders.Initialize(
-		claudeKey,
+		bindAddr,
+		port,
 		openaiKey,
-		deepseekKey,
+		deepSeekKey,
 		ollamaEndpoint,
+		claudeKey,
+		geminiKey,
+		chatgptKey,
+		nil,
 	)
 	providers = append(providers, gromptProviders.NewProvider("gemini", geminiKey, "v1beta", cfg))
 	providers = append(providers, gromptProviders.NewProvider("chatgpt", chatgptKey, "v1", cfg))

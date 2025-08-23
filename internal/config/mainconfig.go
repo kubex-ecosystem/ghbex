@@ -79,20 +79,35 @@ func NewMainConfigType(
 		gl.Log("error", fmt.Sprintf("Configuration file not found. Please create a configuration file at %s", filepath.Join(basePath, "config", "sanitize.yaml")))
 		return nil, fmt.Errorf("configuration file not found")
 	}
-	var ollamaEndpoint, claudeAPIKey, openAIKey, deepSeekKey, geminiKey string
+	var (
+		bindAddr,
+		port,
+		claudeKey,
+		openAIKey,
+		deepSeekKey,
+		geminiKey,
+		chatgptKey,
+		ollamaEndpoint string
+	)
+
+	bindAddr = GetEnvOrDefault("GHBEX_BIND_ADDR", "0.0.0.0")
+	port = GetEnvOrDefault("GHBEX_PORT", "8080")
 	ollamaEndpoint = GetEnvOrDefault("OLLAMA_API_ENDPOINT", "")
-	claudeAPIKey = GetEnvOrDefault("CLAUDE_API_KEY", "")
+	claudeKey = GetEnvOrDefault("CLAUDE_API_KEY", "")
 	openAIKey = GetEnvOrDefault("OPENAI_API_KEY", "")
 	deepSeekKey = GetEnvOrDefault("DEEPSEEK_API_KEY", "")
 	geminiKey = GetEnvOrDefault("GEMINI_API_KEY", "")
+	chatgptKey = GetEnvOrDefault("CHATGPT_API_KEY", "")
 
 	gromptEngineCfg := gromptz.NewGromptConfig(
-		"",
+		bindAddr,
+		port,
+		claudeKey,
 		openAIKey,
 		deepSeekKey,
 		ollamaEndpoint,
-		claudeAPIKey,
 		geminiKey,
+		chatgptKey,
 	)
 	owner = GetEnvOrDefault("GITHUB_REPO_OWNER", owner)
 	if owner == "" {
@@ -272,12 +287,14 @@ func (c *MainConfig) GetGrompt() gromptz.PromptEngine {
 	if c.Grompt == nil {
 		c.Grompt = gromptz.NewGromptEngine(
 			gromptz.NewGromptConfig(
-				"",
+				GetEnvOrDefault("GHBEX_BIND_ADDR", "0.0.0.0"),
+				GetEnvOrDefault("GHBEX_PORT", "8080"),
 				GetEnvOrDefault("OPENAI_API_KEY", ""),
 				GetEnvOrDefault("DEEPSEEK_API_KEY", ""),
 				GetEnvOrDefault("OLLAMA_API_ENDPOINT", ""),
 				GetEnvOrDefault("CLAUDE_API_KEY", ""),
 				GetEnvOrDefault("GEMINI_API_KEY", ""),
+				GetEnvOrDefault("CHATGPT_API_KEY", ""),
 			),
 		)
 	}

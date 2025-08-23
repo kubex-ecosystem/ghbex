@@ -24,14 +24,16 @@ func NewGromptConfigFromFile(filePath string) GromptConfig {
 	return gromptConfig.NewConfigFromFile(filePath)
 }
 func NewGromptConfig(
+	bindAddr string,
 	port string,
-	openAIKey string,
+	claudeKey string,
+	openaiKey string,
 	deepSeekKey string,
 	ollamaEndpoint string,
-	claudeKey string,
 	geminiKey string,
+	chatgptKey string,
 ) GromptConfig {
-	return gromptConfig.NewConfig(port, openAIKey, deepSeekKey, ollamaEndpoint, claudeKey, geminiKey)
+	return gromptConfig.NewConfig(bindAddr, port, openaiKey, deepSeekKey, ollamaEndpoint, claudeKey, geminiKey, chatgptKey, nil)
 }
 func NewPromptEngine(cfg GromptConfig) PromptEngine { return grompt.NewPromptEngine(cfg) }
 func NewAPIConfig(configFilePath, provider string) APIConfig {
