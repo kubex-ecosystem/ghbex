@@ -36,5 +36,3 @@ require (
 	github.com/rafa-mori/grompt v1.0.2
 	github.com/rafa-mori/logz v1.4.0
 )
-
-// replace github.com/rafa-mori/grompt => ../grompt
