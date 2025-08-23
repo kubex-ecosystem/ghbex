@@ -28,27 +28,33 @@ func NewIntelligenceOperator(cfg interfaces.IMainConfig, client *github.Client) 
 	}
 
 	// Initialize Grompt with basic config
-	var port,
-		openAIKey,
-		deepSeekKey,
-		ollamaEndpoint,
-		claudeKey,
-		geminiKey string
-
-	port = configLib.GetEnvOrDefault("GHBEX_PORT", "")
-	openAIKey = configLib.GetEnvOrDefault("OPENAI_API_KEY", "")
-	deepSeekKey = configLib.GetEnvOrDefault("DEEPSEEK_API_KEY", "")
-	ollamaEndpoint = configLib.GetEnvOrDefault("OLLAMA_API_ENDPOINT", "")
-	claudeKey = configLib.GetEnvOrDefault("CLAUDE_API_KEY", "")
-	geminiKey = configLib.GetEnvOrDefault("GEMINI_API_KEY", "")
-
-	gromptEngineCfg := gromptz.NewGromptConfig(
+	var bindAddr,
 		port,
 		openAIKey,
 		deepSeekKey,
 		ollamaEndpoint,
 		claudeKey,
 		geminiKey,
+		chatgptKey string
+
+	bindAddr = configLib.GetEnvOrDefault("GHBEX_BIND_ADDR", "0.0.0.0")
+	port = configLib.GetEnvOrDefault("GHBEX_PORT", "8080")
+	openAIKey = configLib.GetEnvOrDefault("OPENAI_API_KEY", "")
+	deepSeekKey = configLib.GetEnvOrDefault("DEEPSEEK_API_KEY", "")
+	ollamaEndpoint = configLib.GetEnvOrDefault("OLLAMA_API_ENDPOINT", "")
+	claudeKey = configLib.GetEnvOrDefault("CLAUDE_API_KEY", "")
+	geminiKey = configLib.GetEnvOrDefault("GEMINI_API_KEY", "")
+	chatgptKey = configLib.GetEnvOrDefault("CHATGPT_API_KEY", "")
+
+	gromptEngineCfg := gromptz.NewGromptConfig(
+		bindAddr,
+		port,
+		claudeKey,
+		openAIKey,
+		deepSeekKey,
+		ollamaEndpoint,
+		geminiKey,
+		chatgptKey,
 	)
 
 	engine := gromptz.NewGromptEngine(gromptEngineCfg)
