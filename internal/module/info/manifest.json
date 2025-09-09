@@ -5,16 +5,15 @@
   "private": false,
   "published": true,
   "aliases": [
-    "ghbex",
-    "kbx_ghbex"
+    "ghbex"
   ],
   "repository": "https://github.com/kubex-ecosystem/ghbex",
-  "homepage": "https://ghbex.rafa-mori.dev/",
+  "homepage": "https://ghbex.kubex.world/",
   "description": "Kubex - GHbex is a command-line tool for managing GitHub repositories and file markers.",
   "main": "cmd/main.go",
   "bin": "ghbex",
   "author": "Rafael Mori <faelmori@gmail.com>",
-  "organization": "rafa-mori",
+  "organization": "kubex-ecosystem",
   "license": "MIT",
   "keywords": [
     "ghbex",
@@ -28,7 +27,7 @@
     "prompt"
   ],
   "platforms": [
-    "linux/amd64"
+    "linux/amd64",
     "darwin/amd64",
     "darwin/arm64",
     "windows/amd64"
