@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/rafa-mori/ghbex/internal/metrics"
-	"github.com/rafa-mori/ghbex/internal/render"
+	"github.com/kubex-ecosystem/ghbex/internal/metrics"
+	"github.com/kubex-ecosystem/ghbex/internal/render"
 	"github.com/spf13/cobra"
 )
 

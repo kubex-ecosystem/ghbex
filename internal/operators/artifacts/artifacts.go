@@ -5,8 +5,8 @@ import (
 	"context"
 
 	"github.com/google/go-github/v61/github"
-	"github.com/rafa-mori/ghbex/internal/defs/interfaces"
-	"github.com/rafa-mori/ghbex/internal/utils"
+	"github.com/kubex-ecosystem/ghbex/internal/defs/interfaces"
+	"github.com/kubex-ecosystem/ghbex/internal/utils"
 )
 
 type IArtifacts interface {

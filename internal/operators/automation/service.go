@@ -10,14 +10,14 @@ import (
 	"time"
 
 	"github.com/google/go-github/v61/github"
-	"github.com/rafa-mori/ghbex/internal/defs/common"
-	"github.com/rafa-mori/ghbex/internal/defs/gitz"
-	"github.com/rafa-mori/ghbex/internal/defs/interfaces"
-	"github.com/rafa-mori/ghbex/internal/defs/notifiers"
-	artifacts "github.com/rafa-mori/ghbex/internal/operators/artifacts"
-	releases "github.com/rafa-mori/ghbex/internal/operators/releases"
-	sanitize "github.com/rafa-mori/ghbex/internal/operators/sanitize"
-	workflows "github.com/rafa-mori/ghbex/internal/operators/workflows"
+	"github.com/kubex-ecosystem/ghbex/internal/defs/common"
+	"github.com/kubex-ecosystem/ghbex/internal/defs/gitz"
+	"github.com/kubex-ecosystem/ghbex/internal/defs/interfaces"
+	"github.com/kubex-ecosystem/ghbex/internal/defs/notifiers"
+	artifacts "github.com/kubex-ecosystem/ghbex/internal/operators/artifacts"
+	releases "github.com/kubex-ecosystem/ghbex/internal/operators/releases"
+	sanitize "github.com/kubex-ecosystem/ghbex/internal/operators/sanitize"
+	workflows "github.com/kubex-ecosystem/ghbex/internal/operators/workflows"
 )
 
 type Service struct {

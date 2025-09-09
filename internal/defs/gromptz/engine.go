@@ -2,8 +2,8 @@
 package gromptz
 
 import (
-	"github.com/rafa-mori/grompt"
-	gromptConfig "github.com/rafa-mori/grompt/factory/config"
+	"github.com/kubex-ecosystem/grompt"
+	gromptConfig "github.com/kubex-ecosystem/grompt/factory/config"
 )
 
 type IGrompt = grompt.Grompt

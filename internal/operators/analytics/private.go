@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/go-github/v61/github"
 
-	gl "github.com/rafa-mori/ghbex/internal/module/logger"
+	gl "github.com/kubex-ecosystem/ghbex/internal/module/logger"
 )
 
 // analyzeDevelopmentPatterns analyzes commit patterns and development habits

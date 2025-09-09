@@ -1,7 +1,7 @@
 // Package gitz provides a set of types and functions for working with GitHub.
 package gitz
 
-import "github.com/rafa-mori/ghbex/internal/defs/interfaces"
+import "github.com/kubex-ecosystem/ghbex/internal/defs/interfaces"
 
 type GitHub struct {
 	*GitHubAuth `yaml:"auth" json:"auth"`

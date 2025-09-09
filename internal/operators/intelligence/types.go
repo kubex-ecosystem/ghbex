@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/google/go-github/v61/github"
-	"github.com/rafa-mori/ghbex/internal/defs/gromptz"
-	"github.com/rafa-mori/ghbex/internal/defs/interfaces"
+	"github.com/kubex-ecosystem/ghbex/internal/defs/gromptz"
+	"github.com/kubex-ecosystem/ghbex/internal/defs/interfaces"
 )
 
 type LLMMetaResponse struct {

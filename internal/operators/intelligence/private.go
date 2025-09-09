@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/rafa-mori/ghbex/internal/defs/gromptz"
-	gl "github.com/rafa-mori/ghbex/internal/module/logger"
+	"github.com/kubex-ecosystem/ghbex/internal/defs/gromptz"
+	gl "github.com/kubex-ecosystem/ghbex/internal/module/logger"
 )
 
 // setCachedHealthStatus armazena status no cache de forma thread-safe
