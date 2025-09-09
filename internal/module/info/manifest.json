@@ -8,7 +8,7 @@
     "ghbex",
     "kbx_ghbex"
   ],
-  "repository": "https://github.com/rafa-mori/ghbex",
+  "repository": "https://github.com/kubex-ecosystem/ghbex",
   "homepage": "https://ghbex.rafa-mori.dev/",
   "description": "Kubex - GHbex is a command-line tool for managing GitHub repositories and file markers.",
   "main": "cmd/main.go",

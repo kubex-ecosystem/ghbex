@@ -1,6 +1,6 @@
 package gitz
 
-import "github.com/rafa-mori/ghbex/internal/defs/interfaces"
+import "github.com/kubex-ecosystem/ghbex/internal/defs/interfaces"
 
 type MonitoringRule struct {
 	CheckInactivity       bool `yaml:"check_inactivity" json:"check_inactivity"`

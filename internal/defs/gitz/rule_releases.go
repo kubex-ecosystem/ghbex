@@ -1,6 +1,6 @@
 package gitz
 
-import "github.com/rafa-mori/ghbex/internal/defs/interfaces"
+import "github.com/kubex-ecosystem/ghbex/internal/defs/interfaces"
 
 type ReleasesRule struct {
 	DeleteDrafts bool `yaml:"delete_drafts" json:"delete_drafts"`

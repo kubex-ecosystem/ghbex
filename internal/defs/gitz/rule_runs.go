@@ -1,6 +1,6 @@
 package gitz
 
-import "github.com/rafa-mori/ghbex/internal/defs/interfaces"
+import "github.com/kubex-ecosystem/ghbex/internal/defs/interfaces"
 
 type RunsRule struct {
 	MaxAgeDays      int      `yaml:"max_age_days" json:"max_age_days"`

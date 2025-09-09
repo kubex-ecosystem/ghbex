@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	manifest "github.com/rafa-mori/ghbex/internal/module/info"
-	l "github.com/rafa-mori/logz"
+	manifest "github.com/kubex-ecosystem/ghbex/internal/module/info"
+	l "github.com/kubex-ecosystem/logz"
 )
 
 type GLog[T any] interface {
