@@ -5,7 +5,7 @@ import (
 	"context"
 
 	"github.com/google/go-github/v61/github"
-	"github.com/kubex-ecosystem/ghbex/internal/defs/interfaces"
+	"github.com/kubex-ecosystem/gemx/ghbex/internal/defs/interfaces"
 )
 
 func CleanReleases(ctx context.Context, cli *github.Client, owner, repo string, r interfaces.IReleasesRule, dry bool) (deletedDrafts int, tags []string, err error) {

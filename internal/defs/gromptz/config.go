@@ -1,8 +1,8 @@
 package gromptz
 
 import (
-	"github.com/kubex-ecosystem/grompt"
-	gromptProviders "github.com/kubex-ecosystem/grompt/factory/providers"
+	"github.com/kubex-ecosystem/gemx/grompt"
+	gromptProviders "github.com/kubex-ecosystem/gemx/grompt/factory/providers"
 )
 
 type APIConfig = grompt.APIConfig

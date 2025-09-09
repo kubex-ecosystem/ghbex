@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	manifest "github.com/kubex-ecosystem/ghbex/internal/module/info"
+	manifest "github.com/kubex-ecosystem/gemx/ghbex/internal/module/info"
 	l "github.com/kubex-ecosystem/logz"
 )
 

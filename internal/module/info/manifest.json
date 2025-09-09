@@ -7,7 +7,7 @@
   "aliases": [
     "ghbex"
   ],
-  "repository": "https://github.com/kubex-ecosystem/ghbex",
+  "repository": "https://github.com/kubex-ecosystem/gemx/ghbex",
   "homepage": "https://ghbex.kubex.world/",
   "description": "Kubex - GHbex is a command-line tool for managing GitHub repositories and file markers.",
   "main": "cmd/main.go",

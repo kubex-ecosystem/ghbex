@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/kubex-ecosystem/ghbex/internal/defs/interfaces"
+	"github.com/kubex-ecosystem/gemx/ghbex/internal/defs/interfaces"
 )
 
 type Discord struct {
