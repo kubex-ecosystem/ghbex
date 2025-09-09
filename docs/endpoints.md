@@ -56,7 +56,7 @@ curl -X GET "$GHBEX_URL/repos" | jq
     {
       "owner": "rafa-mori",
       "name": "ghbex",
-      "url": "https://github.com/kubex-ecosystem/ghbex",
+      "url": "https://github.com/kubex-ecosystem/gemx/ghbex",
       "rules": {
         "runs": {
           "max_age_days": 30,

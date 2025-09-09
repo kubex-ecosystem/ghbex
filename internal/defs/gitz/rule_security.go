@@ -1,6 +1,6 @@
 package gitz
 
-import "github.com/kubex-ecosystem/ghbex/internal/defs/interfaces"
+import "github.com/kubex-ecosystem/gemx/ghbex/internal/defs/interfaces"
 
 type SecurityRule struct {
 	RotateSSHKeys bool   `yaml:"rotate_ssh_keys" json:"rotate_ssh_keys"`

@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	manifest "github.com/kubex-ecosystem/ghbex/internal/module/info"
-	"github.com/kubex-ecosystem/ghbex/internal/module/logger"
+	manifest "github.com/kubex-ecosystem/gemx/ghbex/internal/module/info"
+	"github.com/kubex-ecosystem/gemx/ghbex/internal/module/logger"
 	"github.com/spf13/cobra"
 )
 

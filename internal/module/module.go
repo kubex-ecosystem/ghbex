@@ -2,9 +2,9 @@
 package module
 
 import (
-	cc "github.com/kubex-ecosystem/ghbex/cmd/cli"
-	gl "github.com/kubex-ecosystem/ghbex/internal/module/logger"
-	vs "github.com/kubex-ecosystem/ghbex/internal/module/version"
+	cc "github.com/kubex-ecosystem/gemx/ghbex/cmd/cli"
+	gl "github.com/kubex-ecosystem/gemx/ghbex/internal/module/logger"
+	vs "github.com/kubex-ecosystem/gemx/ghbex/internal/module/version"
 	"github.com/spf13/cobra"
 
 	"os"

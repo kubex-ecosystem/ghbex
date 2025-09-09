@@ -10,9 +10,9 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"github.com/kubex-ecosystem/ghbex/internal/defs/interfaces"
+	"github.com/kubex-ecosystem/gemx/ghbex/internal/defs/interfaces"
 
-	gl "github.com/kubex-ecosystem/ghbex/internal/module/logger"
+	gl "github.com/kubex-ecosystem/gemx/ghbex/internal/module/logger"
 
 	"gopkg.in/yaml.v3"
 )

@@ -33,7 +33,7 @@ There are several ways to contribute to GHbex:
 ### 1. **Clone the Repository**
 
 ```bash
-git clone https://github.com/kubex-ecosystem/ghbex.git
+git clone https://github.com/kubex-ecosystem/gemx/ghbex.git
 cd ghbex
 ```
 
