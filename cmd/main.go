@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/kubex-ecosystem/gemx/ghbex/internal/module"
-	gl "github.com/kubex-ecosystem/gemx/ghbex/internal/module/logger"
+	"github.com/kubex-ecosystem/ghbex/internal/module"
+	gl "github.com/kubex-ecosystem/ghbex/internal/module/logger"
 )
 
 // This file is the entry point for the Ghbex CLI application.

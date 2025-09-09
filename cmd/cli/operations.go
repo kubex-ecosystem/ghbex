@@ -9,14 +9,14 @@ import (
 	"time"
 
 	"github.com/google/go-github/v61/github"
-	"github.com/kubex-ecosystem/gemx/ghbex/internal/config"
-	"github.com/kubex-ecosystem/gemx/ghbex/internal/defs/interfaces"
-	"github.com/kubex-ecosystem/gemx/ghbex/internal/operators/analytics"
-	"github.com/kubex-ecosystem/gemx/ghbex/internal/operators/intelligence"
-	"github.com/kubex-ecosystem/gemx/ghbex/internal/operators/productivity"
+	"github.com/kubex-ecosystem/ghbex/internal/config"
+	"github.com/kubex-ecosystem/ghbex/internal/defs/interfaces"
+	"github.com/kubex-ecosystem/ghbex/internal/operators/analytics"
+	"github.com/kubex-ecosystem/ghbex/internal/operators/intelligence"
+	"github.com/kubex-ecosystem/ghbex/internal/operators/productivity"
 	"github.com/spf13/cobra"
 
-	gl "github.com/kubex-ecosystem/gemx/ghbex/internal/module/logger"
+	gl "github.com/kubex-ecosystem/ghbex/internal/module/logger"
 )
 
 func OperationsCmdList() *cobra.Command {

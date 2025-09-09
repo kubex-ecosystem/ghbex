@@ -2,7 +2,7 @@
 package core
 
 import (
-	"github.com/kubex-ecosystem/gemx/ghbex/internal/defs/interfaces"
+	"github.com/kubex-ecosystem/ghbex/internal/defs/interfaces"
 )
 
 type Runtime struct {

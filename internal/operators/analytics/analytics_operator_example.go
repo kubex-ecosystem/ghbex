@@ -5,7 +5,7 @@ import (
 	"context"
 	"time"
 
-	rt "github.com/kubex-ecosystem/gemx/ghbex/internal/runtime"
+	rt "github.com/kubex-ecosystem/ghbex/internal/runtime"
 )
 
 // ===== Interface fina para GitHub (evita acoplamento ao client real) =====

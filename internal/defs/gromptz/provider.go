@@ -1,6 +1,6 @@
 package gromptz
 
-import gromptProviders "github.com/kubex-ecosystem/gemx/grompt/factory/providers"
+import gromptProviders "github.com/kubex-ecosystem/grompt/factory/providers"
 
 type Provider = gromptProviders.Provider
 

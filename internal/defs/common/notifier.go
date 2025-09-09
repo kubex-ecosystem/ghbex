@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kubex-ecosystem/gemx/ghbex/internal/defs/interfaces"
+	"github.com/kubex-ecosystem/ghbex/internal/defs/interfaces"
 )
 
 type Notifiers struct {

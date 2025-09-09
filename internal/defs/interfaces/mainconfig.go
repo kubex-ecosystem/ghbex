@@ -2,7 +2,7 @@
 package interfaces
 
 import (
-	"github.com/kubex-ecosystem/gemx/grompt"
+	"github.com/kubex-ecosystem/grompt"
 )
 
 type IMainConfig interface {

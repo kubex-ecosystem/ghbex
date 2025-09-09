@@ -3,10 +3,10 @@
 <p align="center"><b>GHbex</b> — Plataforma inteligente de gestão de repositórios GitHub, com automação, análise avançada e integração multi-AI.</p>
 <p align="center"><em>Automatize, otimize e monitore seus repositórios GitHub com inteligência e segurança.</em></p>
 
-[![Kubex Go Dist CI](https://github.com/kubex-ecosystem/gemx/ghbex/actions/workflows/kubex_go_release.yml/badge.svg)](https://github.com/kubex-ecosystem/gemx/ghbex/actions/workflows/kubex_go_release.yml)
+[![Kubex Go Dist CI](https://github.com/kubex-ecosystem/ghbex/actions/workflows/kubex_go_release.yml/badge.svg)](https://github.com/kubex-ecosystem/ghbex/actions/workflows/kubex_go_release.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Go Version](https://img.shields.io/badge/go-%3E=1.21-blue)](go.mod)
-[![Releases](https://img.shields.io/github/v/release/rafa-mori/ghbex?include_prereleases)](https://github.com/kubex-ecosystem/gemx/ghbex/releases)
+[![Releases](https://img.shields.io/github/v/release/rafa-mori/ghbex?include_prereleases)](https://github.com/kubex-ecosystem/ghbex/releases)
 
 ---
 
@@ -72,7 +72,7 @@ Requisitos: Go >= 1.21
 
 ```bash
 # Clone o repositório
-git clone https://github.com/kubex-ecosystem/gemx/ghbex.git
+git clone https://github.com/kubex-ecosystem/ghbex.git
 cd ghbex
 
 # Instale as dependências
@@ -241,5 +241,5 @@ Projeto sob licença **MIT** — veja o arquivo [LICENSE](LICENSE).
 
 - [Documentação de Endpoints](docs/endpoints.md)
 - [Configuração Avançada](docs/config/)
-- [Issues & Bug Reports](https://github.com/kubex-ecosystem/gemx/ghbex/issues)
-- [Discussions](https://github.com/kubex-ecosystem/gemx/ghbex/discussions)
+- [Issues & Bug Reports](https://github.com/kubex-ecosystem/ghbex/issues)
+- [Discussions](https://github.com/kubex-ecosystem/ghbex/discussions)

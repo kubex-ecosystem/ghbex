@@ -1,4 +1,4 @@
-module github.com/kubex-ecosystem/gemx/ghbex
+module github.com/kubex-ecosystem/ghbex
 
 go 1.25.1
 
@@ -15,7 +15,7 @@ require (
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/kubex-ecosystem/gemx/grompt v1.0.9
+	github.com/kubex-ecosystem/grompt v1.0.9
 	github.com/kubex-ecosystem/logz v1.5.0
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect

@@ -4,10 +4,10 @@
 
 ---
 
-[![Kubex Go Dist CI](https://github.com/kubex-ecosystem/gemx/ghbex/actions/workflows/kubex_go_release.yml/badge.svg)](https://github.com/kubex-ecosystem/gemx/ghbex/actions/workflows/kubex_go_release.yml)
+[![Kubex Go Dist CI](https://github.com/kubex-ecosystem/ghbex/actions/workflows/kubex_go_release.yml/badge.svg)](https://github.com/kubex-ecosystem/ghbex/actions/workflows/kubex_go_release.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Go Version](https://img.shields.io/badge/go-%3E=1.21-blue)](go.mod)
-[![Releases](https://img.shields.io/github/v/release/rafa-mori/ghbex?include_prereleases)](https://github.com/kubex-ecosystem/gemx/ghbex/releases)
+[![Releases](https://img.shields.io/github/v/release/rafa-mori/ghbex?include_prereleases)](https://github.com/kubex-ecosystem/ghbex/releases)
 
 ---
 
@@ -73,7 +73,7 @@ Requirements: Go >= 1.21
 
 ```bash
 # Clone the repository
-git clone https://github.com/kubex-ecosystem/gemx/ghbex.git
+git clone https://github.com/kubex-ecosystem/ghbex.git
 cd ghbex
 
 # Install dependencies
@@ -242,5 +242,5 @@ Project under **MIT** license — see the [LICENSE](LICENSE) file.
 
 - [Endpoints Documentation](docs/endpoints.md)
 - [Advanced Configuration](docs/config/)
-- [Issues & Bug Reports](https://github.com/kubex-ecosystem/gemx/ghbex/issues)
-- [Discussions](https://github.com/kubex-ecosystem/gemx/ghbex/discussions)
+- [Issues & Bug Reports](https://github.com/kubex-ecosystem/ghbex/issues)
+- [Discussions](https://github.com/kubex-ecosystem/ghbex/discussions)

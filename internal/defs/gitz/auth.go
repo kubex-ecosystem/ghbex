@@ -1,6 +1,6 @@
 package gitz
 
-import "github.com/kubex-ecosystem/gemx/ghbex/internal/defs/interfaces"
+import "github.com/kubex-ecosystem/ghbex/internal/defs/interfaces"
 
 type GitHubAuth struct {
 	Kind           string `yaml:"kind" json:"kind"` // pat|app

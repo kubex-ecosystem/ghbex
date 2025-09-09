@@ -11,13 +11,13 @@ import (
 
 	"github.com/google/go-github/v61/github"
 
-	"github.com/kubex-ecosystem/gemx/ghbex/internal/defs/gromptz"
-	"github.com/kubex-ecosystem/gemx/ghbex/internal/defs/interfaces"
-	"github.com/kubex-ecosystem/gemx/ghbex/internal/metrics"
-	gl "github.com/kubex-ecosystem/gemx/ghbex/internal/module/logger"
-	"github.com/kubex-ecosystem/gemx/ghbex/internal/render"
+	"github.com/kubex-ecosystem/ghbex/internal/defs/gromptz"
+	"github.com/kubex-ecosystem/ghbex/internal/defs/interfaces"
+	"github.com/kubex-ecosystem/ghbex/internal/metrics"
+	gl "github.com/kubex-ecosystem/ghbex/internal/module/logger"
+	"github.com/kubex-ecosystem/ghbex/internal/render"
 
-	configLib "github.com/kubex-ecosystem/gemx/ghbex/internal/config"
+	configLib "github.com/kubex-ecosystem/ghbex/internal/config"
 )
 
 // NewIntelligenceOperator creates a new Intelligence operator

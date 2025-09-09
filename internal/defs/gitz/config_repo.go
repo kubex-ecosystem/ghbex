@@ -1,6 +1,6 @@
 package gitz
 
-import "github.com/kubex-ecosystem/gemx/ghbex/internal/defs/interfaces"
+import "github.com/kubex-ecosystem/ghbex/internal/defs/interfaces"
 
 type RepoCfg struct {
 	Owner  string `yaml:"owner" json:"owner"`

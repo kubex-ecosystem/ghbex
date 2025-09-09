@@ -6,8 +6,8 @@ import (
 	"slices"
 
 	"github.com/google/go-github/v61/github"
-	"github.com/kubex-ecosystem/gemx/ghbex/internal/defs/interfaces"
-	"github.com/kubex-ecosystem/gemx/ghbex/internal/utils"
+	"github.com/kubex-ecosystem/ghbex/internal/defs/interfaces"
+	"github.com/kubex-ecosystem/ghbex/internal/utils"
 )
 
 func CleanRuns(ctx context.Context, cli *github.Client, owner, repo string, r interfaces.IRunsRule, dry bool) (deleted, kept int, ids []int64, err error) {

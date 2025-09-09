@@ -7,15 +7,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kubex-ecosystem/gemx/ghbex/internal/defs/common"
-	"github.com/kubex-ecosystem/gemx/ghbex/internal/defs/core"
-	"github.com/kubex-ecosystem/gemx/ghbex/internal/defs/gitz"
-	"github.com/kubex-ecosystem/gemx/ghbex/internal/defs/gromptz"
-	"github.com/kubex-ecosystem/gemx/ghbex/internal/defs/interfaces"
+	"github.com/kubex-ecosystem/ghbex/internal/defs/common"
+	"github.com/kubex-ecosystem/ghbex/internal/defs/core"
+	"github.com/kubex-ecosystem/ghbex/internal/defs/gitz"
+	"github.com/kubex-ecosystem/ghbex/internal/defs/gromptz"
+	"github.com/kubex-ecosystem/ghbex/internal/defs/interfaces"
 
 	"gopkg.in/yaml.v3"
 
-	gl "github.com/kubex-ecosystem/gemx/ghbex/internal/module/logger"
+	gl "github.com/kubex-ecosystem/ghbex/internal/module/logger"
 )
 
 // MainConfig holds the main configuration for the GHBEX application.

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/google/go-github/v61/github"
-	"github.com/kubex-ecosystem/gemx/ghbex/internal/defs/gitz"
+	"github.com/kubex-ecosystem/ghbex/internal/defs/gitz"
 )
 
 // NewIntelligentSanitizer creates a new intelligent sanitizer
