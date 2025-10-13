@@ -16,7 +16,7 @@ require (
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/kubex-ecosystem/grompt v1.0.9
-	github.com/kubex-ecosystem/logz v1.5.0
+	github.com/kubex-ecosystem/logz v1.5.1
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
