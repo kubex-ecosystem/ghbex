@@ -1,6 +1,6 @@
 module github.com/kubex-ecosystem/ghbex
 
-go 1.25.1
+go 1.25.3
 
 require (
 	github.com/google/go-github/v61 v61.0.0
@@ -16,7 +16,7 @@ require (
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/kubex-ecosystem/grompt v1.0.9
-	github.com/kubex-ecosystem/logz v1.5.0
+	github.com/kubex-ecosystem/logz v1.5.5
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
@@ -28,8 +28,8 @@ require (
 	github.com/spf13/viper v1.21.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/sys v0.36.0 // indirect
-	golang.org/x/text v0.29.0 // indirect
+	golang.org/x/sys v0.37.0 // indirect
+	golang.org/x/text v0.30.0 // indirect
 )
 
 require (
