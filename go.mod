@@ -4,7 +4,7 @@ go 1.25.1
 
 require (
 	github.com/google/go-github/v61 v61.0.0
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	golang.org/x/oauth2 v0.31.0
 	gopkg.in/yaml.v3 v3.0.1
 )
